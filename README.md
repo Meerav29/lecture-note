@@ -29,6 +29,11 @@ An open-source, bring-your-own-key web application that turns lecture audio into
 | --- | --- |
 | `DEEPGRAM_API_KEY` | API key used for Deepgram transcription requests. |
 
+## Deepgram Integration
+- Provide a `DEEPGRAM_API_KEY` in `.env.local` or the deployment environment.
+- `lib/providers/deepgram.ts` wraps the Deepgram SDK and can be customized with models, summarization, and formatting settings.
+- `app/api/transcribe/route.ts` accepts uploaded audio, forwards it to the Deepgram provider, and returns the transcript plus metadata for the UI.
+
 ## Roadmap & Contributions
 - Track upcoming work and architecture decisions in [`docs/roadmap.md`](docs/roadmap.md).
 - Open issues or pull requests for new providers, UI polish, or documentation improvements.

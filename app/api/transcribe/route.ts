@@ -1,78 +1,63 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Buffer } from 'node:buffer';
-import { createClient } from '@deepgram/sdk';
+import { resolveTranscriptionProvider } from '../../../lib/providers';
 
 export const runtime = 'nodejs';
 
+const isBlob = (value: FormDataEntryValue | null): value is Blob => value instanceof Blob;
+
 export async function POST(request: NextRequest) {
-  const apiKey = process.env.DEEPGRAM_API_KEY;
-
-  if (!apiKey) {
-    return NextResponse.json(
-      { error: 'Deepgram API key is not configured on the server.' },
-      { status: 500 }
-    );
-  }
-
   const formData = await request.formData();
-  const file = formData.get('file');
+  const fileEntry = formData.get('file');
 
-  if (!(file instanceof Blob)) {
+  if (!isBlob(fileEntry)) {
     return NextResponse.json({ error: 'No audio file uploaded.' }, { status: 400 });
   }
 
-  const arrayBuffer = await file.arrayBuffer();
-  const audioBuffer = Buffer.from(arrayBuffer);
-
-  const deepgram = createClient(apiKey);
+  const providerField = formData.get('provider');
+  const providerName = typeof providerField === 'string' ? providerField.toLowerCase() : undefined;
+  const provider = resolveTranscriptionProvider(providerName);
 
   try {
-    const transcription = await deepgram.listen.prerecorded.transcribeFile(audioBuffer, {
-      model: 'nova-2',
-      smart_format: true,
-      punctuate: true,
-      paragraphs: true,
-      diarize: false,
-      detect_language: true,
-      mimetype: file.type || 'audio/mpeg'
+    const arrayBuffer = await fileEntry.arrayBuffer();
+    const audioBuffer = Buffer.from(arrayBuffer);
+
+    const result = await provider({
+      audio: audioBuffer,
+      mimeType: fileEntry.type || undefined,
+      options: {
+        model: 'nova-3',
+        language: 'en',
+        summarize: 'v2',
+        smartFormat: true,
+        paragraphs: true,
+        punctuate: true
+      }
     });
 
-    const channelData =
-      (transcription as any)?.result?.results?.channels ??
-      (transcription as any)?.result?.channels ??
-      (transcription as any)?.results?.channels ??
-      (transcription as any)?.channels;
-
-    const alternative = channelData?.[0]?.alternatives?.[0];
-
-    if (!alternative) {
-      return NextResponse.json(
-        { error: 'Deepgram did not return any transcript for the audio provided.' },
-        { status: 502 }
-      );
-    }
-
-    const transcriptText =
-      alternative.paragraphs?.paragraphs
-        ?.map((paragraph: any) => paragraph.sentences.map((s: any) => s.text).join(' '))
-        .join('\n\n') || alternative.transcript || '';
-
-    const metadata = (transcription as any)?.metadata ?? {};
-
     return NextResponse.json({
-      transcript: transcriptText,
+      transcript: result.transcript,
       metadata: {
-        model: metadata?.model_info?.name ?? metadata?.model,
-        duration: metadata?.duration,
-        confidence: alternative.confidence
+        model: result.metadata.model,
+        duration: result.metadata.duration,
+        confidence: result.metadata.confidence,
+        summary: result.metadata.summary,
+        language: result.metadata.language
       }
     });
   } catch (error) {
-    console.error('Deepgram transcription error:', error);
     const message =
       error instanceof Error
         ? error.message
-        : 'An unexpected error occurred while contacting Deepgram.';
-    return NextResponse.json({ error: message }, { status: 502 });
+        : 'An unexpected error occurred while contacting the transcription provider.';
+
+    if (error instanceof Error) {
+      console.error('Transcription error:', error);
+    } else {
+      console.error('Transcription error:', { error });
+    }
+
+    const status = message.includes('API key') ? 500 : 502;
+    return NextResponse.json({ error: message }, { status });
   }
 }
