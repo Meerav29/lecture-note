@@ -7,6 +7,13 @@ export const transcriptionProviders = {
 
 export type TranscriptionProviderName = keyof typeof transcriptionProviders;
 
-export const resolveTranscriptionProvider = (
-  name?: string
-): TranscriptionProvider => transcriptionProviders[name ?? 'deepgram'] ?? transcriptionProviders.deepgram;
+const isKnownProvider = (value: string): value is TranscriptionProviderName =>
+  Object.prototype.hasOwnProperty.call(transcriptionProviders, value);
+
+export const resolveTranscriptionProvider = (name?: string): TranscriptionProvider => {
+  const normalized = name?.toLowerCase() ?? 'deepgram';
+  if (isKnownProvider(normalized)) {
+    return transcriptionProviders[normalized];
+  }
+  return transcriptionProviders.deepgram;
+};

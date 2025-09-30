@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useMemo, useState } from 'react';
+import { ComponentProps, FormEvent, useMemo, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import type { Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -77,7 +77,7 @@ const markdownComponents: Components = {
   p: ({ node, ...props }) => (
     <p style={{ margin: '0.45rem 0', color: '#cbd5f5', lineHeight: 1.55 }} {...props} />
   ),
-  ul: ({ node, ordered, ...props }) => (
+  ul: ({ node, ...props }) => (
     <ul
       style={{
         margin: '0.5rem 0 0.5rem 1.1rem',
@@ -89,7 +89,7 @@ const markdownComponents: Components = {
       {...props}
     />
   ),
-  ol: ({ node, ordered, ...props }) => (
+  ol: ({ node, ...props }) => (
     <ol
       style={{
         margin: '0.5rem 0 0.5rem 1.1rem',
@@ -113,20 +113,23 @@ const markdownComponents: Components = {
       }}
     />
   ),
-  code: ({ inline, node, ...props }) => (
-    <code
-      style={{
-        background: 'rgba(15, 23, 42, 0.85)',
-        borderRadius: '0.35rem',
-        padding: inline ? '0.1rem 0.35rem' : '0.6rem',
-        display: inline ? 'inline' : 'block',
-        color: '#f8fafc',
-        fontSize: inline ? '0.95em' : '0.9rem',
-        marginTop: inline ? 0 : '0.4rem'
-      }}
-      {...props}
-    />
-  )
+  code: ({ node, ...rest }) => {
+    const { inline: isInline = false, ...codeProps } = rest as { inline?: boolean } & ComponentProps<'code'>;
+    return (
+      <code
+        {...codeProps}
+        style={{
+          background: 'rgba(15, 23, 42, 0.85)',
+          borderRadius: '0.35rem',
+          padding: isInline ? '0.1rem 0.35rem' : '0.6rem',
+          display: isInline ? 'inline' : 'block',
+          color: '#f8fafc',
+          fontSize: isInline ? '0.95em' : '0.9rem',
+          marginTop: isInline ? 0 : '0.4rem'
+        }}
+      />
+    );
+  }
 };
 
 const MarkdownOutput = ({ content }: { content: string }) => (

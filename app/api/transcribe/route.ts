@@ -4,13 +4,13 @@ import { resolveTranscriptionProvider } from '../../../lib/providers';
 
 export const runtime = 'nodejs';
 
-const isBlob = (value: FormDataEntryValue | null): value is Blob => value instanceof Blob;
+const isFile = (value: FormDataEntryValue | null): value is File => value instanceof File;
 
 export async function POST(request: NextRequest) {
   const formData = await request.formData();
   const fileEntry = formData.get('file');
 
-  if (!isBlob(fileEntry)) {
+  if (!isFile(fileEntry)) {
     return NextResponse.json({ error: 'No audio file uploaded.' }, { status: 400 });
   }
 
