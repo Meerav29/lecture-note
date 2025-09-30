@@ -2,6 +2,10 @@
 
 import { FormEvent, useMemo, useState } from 'react';
 
+type GenerationMode = 'notes' | 'flashcards' | 'mindmap';
+
+type ProviderOption = 'openai' | 'anthropic';
+
 interface TranscriptResponse {
   transcript: string;
   metadata: {
@@ -11,11 +15,39 @@ interface TranscriptResponse {
   };
 }
 
+interface GenerationResult {
+  mode: GenerationMode;
+  output: string;
+}
+
+const GENERATION_LABELS: Record<GenerationMode, string> = {
+  notes: 'Generate class notes',
+  flashcards: 'Generate flashcards',
+  mindmap: 'Generate mind map'
+};
+
+const GENERATION_DESCRIPTIONS: Record<GenerationMode, string> = {
+  notes: 'Create structured lecture notes with detailed explanations for each topic.',
+  flashcards: 'Produce question and answer flashcards that cover the lecture highlights.',
+  mindmap: 'Outline the lecture as a hierarchical mind map with nested bullet points.'
+};
+
+const PROVIDER_LABELS: Record<ProviderOption, string> = {
+  openai: 'ChatGPT (OpenAI)',
+  anthropic: 'Claude (Anthropic)'
+};
+
 export default function TranscribePage() {
   const [file, setFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<TranscriptResponse | null>(null);
+
+  const [provider, setProvider] = useState<ProviderOption>('openai');
+  const [apiKey, setApiKey] = useState('');
+  const [generationError, setGenerationError] = useState<string | null>(null);
+  const [isGenerating, setIsGenerating] = useState<GenerationMode | null>(null);
+  const [generations, setGenerations] = useState<GenerationResult[]>([]);
 
   const fileLabel = useMemo(() => {
     if (!file) return 'Choose an audio file';
@@ -44,6 +76,8 @@ export default function TranscribePage() {
     }
 
     setError(null);
+    setGenerationError(null);
+    setGenerations([]);
     setResult(null);
     setIsSubmitting(true);
 
@@ -72,8 +106,64 @@ export default function TranscribePage() {
     }
   };
 
+  const handleGenerate = async (mode: GenerationMode) => {
+    if (!result?.transcript) {
+      setGenerationError('Transcribe audio before generating study materials.');
+      return;
+    }
+
+    if (!apiKey.trim()) {
+      setGenerationError('Add an API key for your selected provider to continue.');
+      return;
+    }
+
+    setGenerationError(null);
+    setIsGenerating(mode);
+
+    try {
+      const response = await fetch('/api/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          provider,
+          apiKey: apiKey.trim(),
+          transcript: result.transcript,
+          mode
+        })
+      });
+
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error ?? 'Generation failed.');
+      }
+
+      const output = typeof payload.output === 'string' ? payload.output.trim() : '';
+      if (!output) {
+        throw new Error('The language model returned an empty response.');
+      }
+
+      setGenerations((previous) => {
+        const withoutMode = previous.filter((entry) => entry.mode !== mode);
+        return [...withoutMode, { mode, output }];
+      });
+    } catch (generationError) {
+      const message =
+        generationError instanceof Error
+          ? generationError.message
+          : 'Unable to generate the requested content.';
+      setGenerationError(message);
+    } finally {
+      setIsGenerating(null);
+    }
+  };
+
+  const getGeneration = (mode: GenerationMode) =>
+    generations.find((entry) => entry.mode === mode)?.output ?? '';
+
   return (
-    <section style={{ display: 'grid', gap: '1.5rem' }}>
+    <section style={{ display: 'grid', gap: '1.5rem', marginBottom: '4rem' }}>
       <article
         style={{
           padding: '2rem',
@@ -115,10 +205,70 @@ export default function TranscribePage() {
                 setFile(selectedFile);
                 setResult(null);
                 setError(null);
+                setGenerations([]);
+                setGenerationError(null);
               }}
               style={{ display: 'none' }}
             />
           </label>
+
+          <div
+            style={{
+              display: 'grid',
+              gap: '0.75rem',
+              padding: '1.25rem',
+              borderRadius: '0.75rem',
+              border: '1px solid rgba(148, 163, 184, 0.3)',
+              background: 'rgba(15, 23, 42, 0.4)'
+            }}
+          >
+            <div style={{ display: 'grid', gap: '0.5rem' }}>
+              <label htmlFor="provider" style={{ fontWeight: 600 }}>
+                Choose language model
+              </label>
+              <select
+                id="provider"
+                value={provider}
+                onChange={(event) => setProvider(event.target.value as ProviderOption)}
+                style={{
+                  padding: '0.6rem 0.75rem',
+                  borderRadius: '0.5rem',
+                  border: '1px solid rgba(148, 163, 184, 0.5)',
+                  background: 'rgba(15, 23, 42, 0.6)',
+                  color: '#e2e8f0'
+                }}
+              >
+                {(Object.keys(PROVIDER_LABELS) as ProviderOption[]).map((option) => (
+                  <option key={option} value={option}>
+                    {PROVIDER_LABELS[option]}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div style={{ display: 'grid', gap: '0.5rem' }}>
+              <label htmlFor="apiKey" style={{ fontWeight: 600 }}>
+                {PROVIDER_LABELS[provider]} API key
+              </label>
+              <input
+                id="apiKey"
+                type="password"
+                value={apiKey}
+                onChange={(event) => setApiKey(event.target.value)}
+                placeholder="Paste your API key (stored only in this session)"
+                style={{
+                  padding: '0.6rem 0.75rem',
+                  borderRadius: '0.5rem',
+                  border: '1px solid rgba(148, 163, 184, 0.5)',
+                  background: 'rgba(15, 23, 42, 0.6)',
+                  color: '#e2e8f0'
+                }}
+              />
+            </div>
+            <p style={{ color: '#94a3b8', fontSize: '0.85rem' }}>
+              API keys are sent only with your generation request and are not stored on the server.
+            </p>
+          </div>
 
           <button
             type="submit"
@@ -155,16 +305,108 @@ export default function TranscribePage() {
             background: 'rgba(15, 23, 42, 0.65)',
             border: '1px solid rgba(148, 163, 184, 0.25)',
             whiteSpace: 'pre-wrap',
-            lineHeight: 1.7
+            lineHeight: 1.7,
+            display: 'grid',
+            gap: '1.5rem'
           }}
         >
-          <header style={{ marginBottom: '1rem' }}>
-            <h3 style={{ marginBottom: '0.35rem' }}>Transcript</h3>
-            {metadataSummary && (
-              <p style={{ color: '#94a3b8', fontSize: '0.9rem' }}>{metadataSummary}</p>
+          <section>
+            <header style={{ marginBottom: '1rem' }}>
+              <h3 style={{ marginBottom: '0.35rem' }}>Transcript</h3>
+              {metadataSummary && (
+                <p style={{ color: '#94a3b8', fontSize: '0.9rem' }}>{metadataSummary}</p>
+              )}
+            </header>
+            <div style={{ color: '#e2e8f0' }}>{result.transcript || 'No transcript returned.'}</div>
+          </section>
+
+          <section
+            style={{
+              padding: '1.5rem',
+              borderRadius: '0.75rem',
+              background: 'rgba(15, 23, 42, 0.55)',
+              border: '1px solid rgba(148, 163, 184, 0.25)',
+              display: 'grid',
+              gap: '1rem'
+            }}
+          >
+            <header>
+              <h3 style={{ marginBottom: '0.35rem' }}>Create study materials</h3>
+              <p style={{ color: '#94a3b8', fontSize: '0.9rem' }}>
+                Send the transcript to {PROVIDER_LABELS[provider]} with a tailored prompt to create
+                notes, flashcards, or a mind map.
+              </p>
+            </header>
+
+            <div
+              style={{
+                display: 'grid',
+                gap: '0.75rem'
+              }}
+            >
+              {(Object.keys(GENERATION_LABELS) as GenerationMode[]).map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => handleGenerate(mode)}
+                  disabled={isGenerating === mode}
+                  style={{
+                    padding: '0.75rem 1.25rem',
+                    borderRadius: '0.75rem',
+                    border: '1px solid rgba(148, 163, 184, 0.35)',
+                    background:
+                      isGenerating === mode
+                        ? 'linear-gradient(135deg, #334155, #475569)'
+                        : 'linear-gradient(135deg, #0ea5e9, #6366f1)',
+                    color: '#0f172a',
+                    fontWeight: 600,
+                    cursor: isGenerating === mode ? 'wait' : 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'flex-start',
+                    gap: '0.35rem',
+                    textAlign: 'left'
+                  }}
+                >
+                  <span>{isGenerating === mode ? 'Generating…' : GENERATION_LABELS[mode]}</span>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 500, color: '#0f172a' }}>
+                    {GENERATION_DESCRIPTIONS[mode]}
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            {generationError && (
+              <p role="alert" style={{ color: '#fca5a5' }}>
+                {generationError}
+              </p>
             )}
-          </header>
-          {result.transcript || 'No transcript returned.'}
+          </section>
+
+          {(Object.keys(GENERATION_LABELS) as GenerationMode[])
+            .map((mode) => ({ mode, output: getGeneration(mode) }))
+            .filter((entry) => entry.output)
+            .map((entry) => (
+              <section
+                key={entry.mode}
+                style={{
+                  padding: '1.5rem',
+                  borderRadius: '0.75rem',
+                  background: 'rgba(15, 23, 42, 0.45)',
+                  border: '1px solid rgba(148, 163, 184, 0.2)',
+                  display: 'grid',
+                  gap: '0.75rem'
+                }}
+              >
+                <header>
+                  <h3 style={{ marginBottom: '0.35rem' }}>{GENERATION_LABELS[entry.mode]}</h3>
+                  <p style={{ color: '#94a3b8', fontSize: '0.9rem' }}>
+                    {GENERATION_DESCRIPTIONS[entry.mode]}
+                  </p>
+                </header>
+                <div style={{ whiteSpace: 'pre-wrap', color: '#e2e8f0' }}>{entry.output}</div>
+              </section>
+            ))}
         </article>
       )}
     </section>
