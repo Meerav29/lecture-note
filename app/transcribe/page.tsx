@@ -1,6 +1,9 @@
 'use client';
 
 import { FormEvent, useMemo, useState } from 'react';
+import ReactMarkdown from 'react-markdown';
+import type { Components } from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 type GenerationMode = 'notes' | 'flashcards' | 'mindmap';
 
@@ -37,6 +40,103 @@ const PROVIDER_LABELS: Record<ProviderOption, string> = {
   anthropic: 'Claude (Anthropic)'
 };
 
+const markdownComponents: Components = {
+  h1: ({ node, ...props }) => (
+    <h1
+      style={{
+        fontSize: '1.45rem',
+        fontWeight: 700,
+        color: '#f8fafc',
+        margin: '0.9rem 0 0.5rem'
+      }}
+      {...props}
+    />
+  ),
+  h2: ({ node, ...props }) => (
+    <h2
+      style={{
+        fontSize: '1.25rem',
+        fontWeight: 700,
+        color: '#f1f5f9',
+        margin: '0.75rem 0 0.45rem'
+      }}
+      {...props}
+    />
+  ),
+  h3: ({ node, ...props }) => (
+    <h3
+      style={{
+        fontSize: '1.1rem',
+        fontWeight: 600,
+        color: '#e2e8f0',
+        margin: '0.6rem 0 0.35rem'
+      }}
+      {...props}
+    />
+  ),
+  p: ({ node, ...props }) => (
+    <p style={{ margin: '0.45rem 0', color: '#cbd5f5', lineHeight: 1.55 }} {...props} />
+  ),
+  ul: ({ node, ordered, ...props }) => (
+    <ul
+      style={{
+        margin: '0.5rem 0 0.5rem 1.1rem',
+        padding: 0,
+        color: '#cbd5f5',
+        lineHeight: 1.55,
+        listStyleType: 'disc'
+      }}
+      {...props}
+    />
+  ),
+  ol: ({ node, ordered, ...props }) => (
+    <ol
+      style={{
+        margin: '0.5rem 0 0.5rem 1.1rem',
+        padding: 0,
+        color: '#cbd5f5',
+        lineHeight: 1.55,
+        listStyleType: 'decimal'
+      }}
+      {...props}
+    />
+  ),
+  li: ({ node, ...props }) => <li style={{ marginBottom: '0.3rem' }} {...props} />,
+  strong: ({ node, ...props }) => <strong style={{ color: '#f8fafc' }} {...props} />,
+  em: ({ node, ...props }) => <em style={{ fontStyle: 'italic' }} {...props} />,
+  hr: () => (
+    <hr
+      style={{
+        margin: '1rem 0',
+        border: 0,
+        borderTop: '1px solid rgba(148, 163, 184, 0.35)'
+      }}
+    />
+  ),
+  code: ({ inline, node, ...props }) => (
+    <code
+      style={{
+        background: 'rgba(15, 23, 42, 0.85)',
+        borderRadius: '0.35rem',
+        padding: inline ? '0.1rem 0.35rem' : '0.6rem',
+        display: inline ? 'inline' : 'block',
+        color: '#f8fafc',
+        fontSize: inline ? '0.95em' : '0.9rem',
+        marginTop: inline ? 0 : '0.4rem'
+      }}
+      {...props}
+    />
+  )
+};
+
+const MarkdownOutput = ({ content }: { content: string }) => (
+  <div style={{ color: '#cbd5f5', fontSize: '1rem', lineHeight: 1.55 }}>
+    <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+      {content}
+    </ReactMarkdown>
+  </div>
+);
+
 export default function TranscribePage() {
   const [file, setFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -44,7 +144,6 @@ export default function TranscribePage() {
   const [result, setResult] = useState<TranscriptResponse | null>(null);
 
   const [provider, setProvider] = useState<ProviderOption>('openai');
-  const [apiKey, setApiKey] = useState('');
   const [generationError, setGenerationError] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState<GenerationMode | null>(null);
   const [generations, setGenerations] = useState<GenerationResult[]>([]);
@@ -112,11 +211,6 @@ export default function TranscribePage() {
       return;
     }
 
-    if (!apiKey.trim()) {
-      setGenerationError('Add an API key for your selected provider to continue.');
-      return;
-    }
-
     setGenerationError(null);
     setIsGenerating(mode);
 
@@ -128,7 +222,6 @@ export default function TranscribePage() {
         },
         body: JSON.stringify({
           provider,
-          apiKey: apiKey.trim(),
           transcript: result.transcript,
           mode
         })
@@ -246,27 +339,9 @@ export default function TranscribePage() {
               </select>
             </div>
 
-            <div style={{ display: 'grid', gap: '0.5rem' }}>
-              <label htmlFor="apiKey" style={{ fontWeight: 600 }}>
-                {PROVIDER_LABELS[provider]} API key
-              </label>
-              <input
-                id="apiKey"
-                type="password"
-                value={apiKey}
-                onChange={(event) => setApiKey(event.target.value)}
-                placeholder="Paste your API key (stored only in this session)"
-                style={{
-                  padding: '0.6rem 0.75rem',
-                  borderRadius: '0.5rem',
-                  border: '1px solid rgba(148, 163, 184, 0.5)',
-                  background: 'rgba(15, 23, 42, 0.6)',
-                  color: '#e2e8f0'
-                }}
-              />
-            </div>
             <p style={{ color: '#94a3b8', fontSize: '0.85rem' }}>
-              API keys are sent only with your generation request and are not stored on the server.
+              Requests use the server-configured API key for your selected provider. Update
+              `.env.local` to change the key used in this demo.
             </p>
           </div>
 
@@ -404,7 +479,7 @@ export default function TranscribePage() {
                     {GENERATION_DESCRIPTIONS[entry.mode]}
                   </p>
                 </header>
-                <div style={{ whiteSpace: 'pre-wrap', color: '#e2e8f0' }}>{entry.output}</div>
+                <MarkdownOutput content={entry.output} />
               </section>
             ))}
         </article>

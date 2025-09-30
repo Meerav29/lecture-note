@@ -7,7 +7,6 @@ type Mode = 'notes' | 'flashcards' | 'mindmap';
 
 interface GeneratePayload {
   provider?: Provider;
-  apiKey?: string;
   transcript?: string;
   mode?: Mode;
 }
@@ -117,6 +116,16 @@ async function callAnthropic(apiKey: string, transcript: string, mode: Mode) {
   return content;
 }
 
+const resolveApiKey = (provider: Provider): string | null => {
+  if (provider === 'openai') {
+    const value = process.env.OPENAI_API_KEY?.trim();
+    return value?.length ? value : null;
+  }
+
+  const value = (process.env.CLAUDE_API_KEY ?? process.env.ANTHROPIC_API_KEY)?.trim();
+  return value?.length ? value : null;
+};
+
 export async function POST(request: NextRequest) {
   let body: GeneratePayload;
   try {
@@ -127,7 +136,6 @@ export async function POST(request: NextRequest) {
 
   const provider = providerFromString(body.provider);
   const mode = modeFromString(body.mode);
-  const apiKey = body.apiKey?.trim();
   const transcript = body.transcript?.trim();
 
   if (!provider) {
@@ -138,8 +146,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unsupported or missing generation mode.' }, { status: 400 });
   }
 
+  const apiKey = resolveApiKey(provider);
   if (!apiKey) {
-    return NextResponse.json({ error: 'An API key is required for the selected provider.' }, { status: 400 });
+    return NextResponse.json(
+      {
+        error:
+          provider === 'openai'
+            ? 'OPENAI_API_KEY is not configured on the server.'
+            : 'CLAUDE_API_KEY (or ANTHROPIC_API_KEY) is not configured on the server.'
+      },
+      { status: 500 }
+    );
   }
 
   if (!transcript) {
