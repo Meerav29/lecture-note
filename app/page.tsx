@@ -1,37 +1,102 @@
 import Link from 'next/link';
 
+const highlights = [
+  {
+    title: 'Lightning-fast transcription',
+    description:
+      'Upload lectures or study groups and get beautifully formatted transcripts within minutes.',
+    href: '/transcribe',
+    cta: 'Start transcribing'
+  },
+  {
+    title: 'Instant study notes',
+    description:
+      'Convert transcripts into organized summaries, key takeaways, and follow-up questions.',
+    href: '/notes',
+    cta: 'Generate notes'
+  },
+  {
+    title: 'Build smarter flashcards',
+    description:
+      'Turn lectures into spaced-repetition decks so revision nights actually stick.',
+    href: '/cards',
+    cta: 'Open flashcards'
+  }
+];
+
 export default function HomePage() {
   return (
-    <section style={{ display: 'grid', gap: '1.5rem' }}>
-      <div
-        style={{
-          padding: '1.5rem',
-          borderRadius: '1rem',
-          background: 'rgba(15, 23, 42, 0.55)',
-          border: '1px solid rgba(148, 163, 184, 0.2)'
-        }}
-      >
-        <h2 style={{ marginBottom: '0.5rem' }}>Deepgram Transcription</h2>
-        <p style={{ marginBottom: '1rem', color: '#cbd5f5' }}>
-          Upload an audio file to receive a fast, high-quality transcript powered by Deepgram.
+    <>
+      <section className="hero">
+        <span className="hero-pill">New • Spring refresh</span>
+        <h2>Capture every lecture, stay in the flow.</h2>
+        <p>
+          Bring your audio, Lecture Note handles the rest. Transcribe, summarize, and revise with a
+          calm workspace designed for students who learn better when they can focus on listening.
         </p>
-        <Link
-          href="/transcribe"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            padding: '0.75rem 1.5rem',
-            borderRadius: '9999px',
-            background: 'linear-gradient(135deg, #2563eb, #38bdf8)',
-            color: '#0f172a',
-            fontWeight: 600,
-            textDecoration: 'none'
-          }}
-        >
-          Go to transcription
-        </Link>
-      </div>
-    </section>
+        <div className="hero-actions">
+          <Link className="button primary" href="/transcribe">
+            Upload an audio file
+          </Link>
+          <Link className="button" href="/docs">
+            Explore the tools
+          </Link>
+        </div>
+        <div className="hero-meta">
+          <div>
+            <span className="meta-number">4.8★</span>
+            <span className="meta-label">Student satisfaction</span>
+          </div>
+          <div>
+            <span className="meta-number">1.2k+</span>
+            <span className="meta-label">Lectures transcribed last month</span>
+          </div>
+          <div>
+            <span className="meta-number">∞</span>
+            <span className="meta-label">Focus regained</span>
+          </div>
+        </div>
+      </section>
+
+      <section className="highlights" aria-label="Workflow shortcuts">
+        {highlights.map((item) => (
+          <article className="glass-card" key={item.title}>
+            <div className="card-header">
+              <h3>{item.title}</h3>
+              <Link className="icon-link" href={item.href}>
+                <span>{item.cta}</span>
+                <span aria-hidden>→</span>
+              </Link>
+            </div>
+            <p>{item.description}</p>
+          </article>
+        ))}
+      </section>
+
+      <section className="info-grid">
+        <article className="info-card">
+          <h3>Stay organized effortlessly</h3>
+          <p>
+            Drop in your lecture recordings and Lecture Note syncs transcripts, notes, and flashcards
+            automatically. Everything lives in one tidy dashboard that looks good at 2 a.m. study
+            sessions and 9 a.m. lectures alike.
+          </p>
+        </article>
+        <article className="info-card">
+          <h3>Designed for real student life</h3>
+          <p>
+            Dark, calming visuals, keyboard-friendly shortcuts, and smart defaults make it easy to
+            stay in the zone. Less fiddling, more learning.
+          </p>
+        </article>
+        <article className="info-card">
+          <h3>Collaborate when it counts</h3>
+          <p>
+            Share notes with classmates, export summaries to slides, or keep it private for your own
+            revision. You control how your lecture knowledge travels.
+          </p>
+        </article>
+      </section>
+    </>
   );
 }
