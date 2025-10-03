@@ -29,14 +29,14 @@ export default function CardsPage() {
         style={{
           padding: '2rem',
           borderRadius: '1rem',
-          background: 'rgba(15, 23, 42, 0.75)',
-          border: '1px solid rgba(148, 163, 184, 0.35)',
-          boxShadow: '0 30px 70px rgba(15, 23, 42, 0.35)'
+          background: 'var(--surface-panel)',
+          border: '1px solid var(--border-strong)',
+          boxShadow: 'var(--shadow-panel)'
         }}
       >
         <header style={{ marginBottom: '1.5rem' }}>
           <h2 style={{ margin: 0, fontSize: '1.8rem' }}>Flashcard preview</h2>
-          <p style={{ margin: '0.5rem 0 0', color: '#94a3b8', lineHeight: 1.6 }}>
+          <p style={{ margin: '0.5rem 0 0', color: 'var(--text-muted)', lineHeight: 1.6 }}>
             Paste the flashcard bullets generated on the transcription page. Cards must use the
             Q: ... and A: ... format. Every answer is bundled with the next question so you can
             iterate through them below.
@@ -46,7 +46,7 @@ export default function CardsPage() {
         <label style={{ display: 'grid', gap: '0.65rem' }}>
           <span style={{ fontWeight: 600 }}>
             Model output
-            <span style={{ fontWeight: 400, color: '#94a3b8', marginLeft: '0.35rem' }}>
+            <span style={{ fontWeight: 400, color: 'var(--text-muted)', marginLeft: '0.35rem' }}>
               ({cardCount} parsed)
             </span>
           </span>
@@ -59,9 +59,9 @@ export default function CardsPage() {
               width: '100%',
               padding: '1rem',
               borderRadius: '0.75rem',
-              border: '1px solid rgba(148, 163, 184, 0.45)',
-              background: 'rgba(15, 23, 42, 0.6)',
-              color: '#e2e8f0',
+              border: '1px solid var(--border-strong)',
+              background: 'var(--surface-input)',
+              color: 'var(--text-secondary)',
               fontFamily: 'Consolas, SFMono-Regular, ui-monospace, monospace',
               fontSize: '0.95rem',
               lineHeight: 1.5

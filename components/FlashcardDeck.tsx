@@ -120,17 +120,17 @@ const FlashcardDeck = ({ cards }: FlashcardDeckProps) => {
         gap: '1rem',
         padding: '1.5rem',
         borderRadius: '0.75rem',
-        border: '1px solid rgba(148, 163, 184, 0.35)',
-        background: 'rgba(15, 23, 42, 0.55)'
+        border: '1px solid var(--border-strong)',
+        background: 'var(--surface-panel-muted)'
       }}
     >
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h3 style={{ margin: 0 }}>Preview</h3>
-        <span style={{ color: '#94a3b8', fontSize: '0.9rem' }}>{progressLabel}</span>
+        <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>{progressLabel}</span>
       </header>
 
       {!hasCards ? (
-        <p style={{ color: '#94a3b8', margin: 0 }}>
+        <p style={{ color: 'var(--text-muted)', margin: 0 }}>
           Paste model output using the Q: … / A: … format to preview flashcards here.
         </p>
       ) : (
@@ -138,8 +138,8 @@ const FlashcardDeck = ({ cards }: FlashcardDeckProps) => {
           style={{
             padding: '1.5rem',
             borderRadius: '0.75rem',
-            background: 'rgba(15, 23, 42, 0.75)',
-            border: '1px solid rgba(148, 163, 184, 0.25)',
+            background: 'var(--surface-panel)',
+            border: '1px solid var(--border-default)',
             minHeight: '180px',
             display: 'flex',
             flexDirection: 'column',
@@ -148,7 +148,7 @@ const FlashcardDeck = ({ cards }: FlashcardDeckProps) => {
           }}
         >
           <div style={{ display: 'grid', gap: '0.5rem' }}>
-            <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>
+            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
               {showAnswer ? 'Answer' : 'Prompt'}
             </span>
             <p style={{ margin: 0, fontSize: '1.05rem', lineHeight: 1.6 }}>
@@ -166,8 +166,8 @@ const FlashcardDeck = ({ cards }: FlashcardDeckProps) => {
               border: 'none',
               cursor: 'pointer',
               fontWeight: 600,
-              color: '#0f172a',
-              background: 'linear-gradient(135deg, #22d3ee, #6366f1)'
+              color: 'var(--accent-text-contrast)',
+              background: 'var(--accent-gradient-alt)'
             }}
           >
             {showAnswer ? 'Hide answer' : 'Reveal answer'}
@@ -184,9 +184,9 @@ const FlashcardDeck = ({ cards }: FlashcardDeckProps) => {
               flex: 1,
               padding: '0.65rem 1rem',
               borderRadius: '0.75rem',
-              border: '1px solid rgba(148, 163, 184, 0.3)',
-              background: 'rgba(15, 23, 42, 0.75)',
-              color: '#e2e8f0',
+              border: '1px solid var(--border-medium)',
+              background: 'var(--surface-panel)',
+              color: 'var(--text-secondary)',
               cursor: 'pointer'
             }}
           >
@@ -199,9 +199,9 @@ const FlashcardDeck = ({ cards }: FlashcardDeckProps) => {
               flex: 1,
               padding: '0.65rem 1rem',
               borderRadius: '0.75rem',
-              border: '1px solid rgba(148, 163, 184, 0.3)',
-              background: 'rgba(15, 23, 42, 0.75)',
-              color: '#e2e8f0',
+              border: '1px solid var(--border-medium)',
+              background: 'var(--surface-panel)',
+              color: 'var(--text-secondary)',
               cursor: 'pointer'
             }}
           >

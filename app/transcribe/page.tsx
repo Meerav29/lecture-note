@@ -46,7 +46,7 @@ const markdownComponents: Components = {
       style={{
         fontSize: '1.45rem',
         fontWeight: 700,
-        color: '#f8fafc',
+        color: 'var(--text-primary)',
         margin: '0.9rem 0 0.5rem'
       }}
       {...props}
@@ -57,7 +57,7 @@ const markdownComponents: Components = {
       style={{
         fontSize: '1.25rem',
         fontWeight: 700,
-        color: '#f1f5f9',
+        color: 'var(--text-secondary)',
         margin: '0.75rem 0 0.45rem'
       }}
       {...props}
@@ -68,21 +68,21 @@ const markdownComponents: Components = {
       style={{
         fontSize: '1.1rem',
         fontWeight: 600,
-        color: '#e2e8f0',
+        color: 'var(--text-secondary)',
         margin: '0.6rem 0 0.35rem'
       }}
       {...props}
     />
   ),
   p: ({ node, ...props }) => (
-    <p style={{ margin: '0.45rem 0', color: '#cbd5f5', lineHeight: 1.55 }} {...props} />
+    <p style={{ margin: '0.45rem 0', color: 'var(--text-soft-strong)', lineHeight: 1.55 }} {...props} />
   ),
   ul: ({ node, ...props }) => (
     <ul
       style={{
         margin: '0.5rem 0 0.5rem 1.1rem',
         padding: 0,
-        color: '#cbd5f5',
+        color: 'var(--text-soft-strong)',
         lineHeight: 1.55,
         listStyleType: 'disc'
       }}
@@ -94,7 +94,7 @@ const markdownComponents: Components = {
       style={{
         margin: '0.5rem 0 0.5rem 1.1rem',
         padding: 0,
-        color: '#cbd5f5',
+        color: 'var(--text-soft-strong)',
         lineHeight: 1.55,
         listStyleType: 'decimal'
       }}
@@ -102,14 +102,14 @@ const markdownComponents: Components = {
     />
   ),
   li: ({ node, ...props }) => <li style={{ marginBottom: '0.3rem' }} {...props} />,
-  strong: ({ node, ...props }) => <strong style={{ color: '#f8fafc' }} {...props} />,
+  strong: ({ node, ...props }) => <strong style={{ color: 'var(--text-primary)' }} {...props} />,
   em: ({ node, ...props }) => <em style={{ fontStyle: 'italic' }} {...props} />,
   hr: () => (
     <hr
       style={{
         margin: '1rem 0',
         border: 0,
-        borderTop: '1px solid rgba(148, 163, 184, 0.35)'
+        borderTop: '1px solid var(--border-strong)'
       }}
     />
   ),
@@ -119,11 +119,11 @@ const markdownComponents: Components = {
       <code
         {...codeProps}
         style={{
-          background: 'rgba(15, 23, 42, 0.85)',
+          background: 'var(--surface-code)',
           borderRadius: '0.35rem',
           padding: isInline ? '0.1rem 0.35rem' : '0.6rem',
           display: isInline ? 'inline' : 'block',
-          color: '#f8fafc',
+          color: 'var(--text-code)',
           fontSize: isInline ? '0.95em' : '0.9rem',
           marginTop: isInline ? 0 : '0.4rem'
         }}
@@ -133,7 +133,7 @@ const markdownComponents: Components = {
 };
 
 const MarkdownOutput = ({ content }: { content: string }) => (
-  <div style={{ color: '#cbd5f5', fontSize: '1rem', lineHeight: 1.55 }}>
+  <div style={{ color: 'var(--text-soft-strong)', fontSize: '1rem', lineHeight: 1.55 }}>
     <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
       {content}
     </ReactMarkdown>
@@ -264,13 +264,13 @@ export default function TranscribePage() {
         style={{
           padding: '2rem',
           borderRadius: '1rem',
-          background: 'rgba(15, 23, 42, 0.75)',
-          border: '1px solid rgba(148, 163, 184, 0.3)',
-          boxShadow: '0 30px 70px rgba(15, 23, 42, 0.35)'
+          background: 'var(--surface-panel)',
+          border: '1px solid var(--border-medium)',
+          boxShadow: 'var(--shadow-panel)'
         }}
       >
         <h2 style={{ fontSize: '1.75rem', marginBottom: '0.5rem' }}>Transcribe audio with Deepgram</h2>
-        <p style={{ marginBottom: '1.5rem', color: '#cbd5f5' }}>
+        <p style={{ marginBottom: '1.5rem', color: 'var(--text-soft-strong)' }}>
           Upload a pre-recorded lecture in MP3, WAV, or M4A format. Deepgram will process the entire
           file and return the transcript in a single response.
         </p>
@@ -284,13 +284,13 @@ export default function TranscribePage() {
               gap: '0.5rem',
               padding: '1.25rem',
               borderRadius: '0.75rem',
-              border: '2px dashed rgba(148, 163, 184, 0.4)',
-              background: 'rgba(15, 23, 42, 0.6)',
+              border: '2px dashed var(--border-bold)',
+              background: 'var(--surface-input)',
               cursor: 'pointer'
             }}
           >
             <span style={{ fontWeight: 600 }}>Audio file</span>
-            <span style={{ color: '#94a3b8' }}>{fileLabel}</span>
+            <span style={{ color: 'var(--text-muted)' }}>{fileLabel}</span>
             <input
               id="audio"
               name="file"
@@ -314,8 +314,8 @@ export default function TranscribePage() {
               gap: '0.75rem',
               padding: '1.25rem',
               borderRadius: '0.75rem',
-              border: '1px solid rgba(148, 163, 184, 0.3)',
-              background: 'rgba(15, 23, 42, 0.4)'
+              border: '1px solid var(--border-medium)',
+              background: 'var(--surface-panel-faint)'
             }}
           >
             <div style={{ display: 'grid', gap: '0.5rem' }}>
@@ -329,9 +329,9 @@ export default function TranscribePage() {
                 style={{
                   padding: '0.6rem 0.75rem',
                   borderRadius: '0.5rem',
-                  border: '1px solid rgba(148, 163, 184, 0.5)',
-                  background: 'rgba(15, 23, 42, 0.6)',
-                  color: '#e2e8f0'
+                  border: '1px solid var(--border-stronger)',
+                  background: 'var(--surface-input)',
+                  color: 'var(--text-secondary)'
                 }}
               >
                 {(Object.keys(PROVIDER_LABELS) as ProviderOption[]).map((option) => (
@@ -342,7 +342,7 @@ export default function TranscribePage() {
               </select>
             </div>
 
-            <p style={{ color: '#94a3b8', fontSize: '0.85rem' }}>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
               Requests use the server-configured API key for your selected provider. Update
               `.env.local` to change the key used in this demo.
             </p>
@@ -357,10 +357,10 @@ export default function TranscribePage() {
               border: 'none',
               fontWeight: 600,
               cursor: isSubmitting ? 'not-allowed' : 'pointer',
-              color: '#0f172a',
+              color: 'var(--accent-text-contrast)',
               background: isSubmitting
-                ? 'linear-gradient(135deg, #334155, #64748b)'
-                : 'linear-gradient(135deg, #22d3ee, #6366f1)',
+                ? 'var(--accent-gradient-muted)'
+                : 'var(--accent-gradient-alt)',
               transition: 'filter 150ms ease'
             }}
           >
@@ -369,7 +369,7 @@ export default function TranscribePage() {
         </form>
 
         {error && (
-          <p role="alert" style={{ color: '#fca5a5', marginTop: '1rem' }}>
+          <p role="alert" style={{ color: 'var(--status-error)', marginTop: '1rem' }}>
             {error}
           </p>
         )}
@@ -380,8 +380,8 @@ export default function TranscribePage() {
           style={{
             padding: '2rem',
             borderRadius: '1rem',
-            background: 'rgba(15, 23, 42, 0.65)',
-            border: '1px solid rgba(148, 163, 184, 0.25)',
+            background: 'var(--surface-panel-contrast)',
+            border: '1px solid var(--border-default)',
             whiteSpace: 'pre-wrap',
             lineHeight: 1.7,
             display: 'grid',
@@ -392,25 +392,25 @@ export default function TranscribePage() {
             <header style={{ marginBottom: '1rem' }}>
               <h3 style={{ marginBottom: '0.35rem' }}>Transcript</h3>
               {metadataSummary && (
-                <p style={{ color: '#94a3b8', fontSize: '0.9rem' }}>{metadataSummary}</p>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>{metadataSummary}</p>
               )}
             </header>
-            <div style={{ color: '#e2e8f0' }}>{result.transcript || 'No transcript returned.'}</div>
+            <div style={{ color: 'var(--text-secondary)' }}>{result.transcript || 'No transcript returned.'}</div>
           </section>
 
           <section
             style={{
               padding: '1.5rem',
               borderRadius: '0.75rem',
-              background: 'rgba(15, 23, 42, 0.55)',
-              border: '1px solid rgba(148, 163, 184, 0.25)',
+              background: 'var(--surface-panel-muted)',
+              border: '1px solid var(--border-default)',
               display: 'grid',
               gap: '1rem'
             }}
           >
             <header>
               <h3 style={{ marginBottom: '0.35rem' }}>Create study materials</h3>
-              <p style={{ color: '#94a3b8', fontSize: '0.9rem' }}>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
                 Send the transcript to {PROVIDER_LABELS[provider]} with a tailored prompt to create
                 notes, flashcards, or a mind map.
               </p>
@@ -431,12 +431,12 @@ export default function TranscribePage() {
                   style={{
                     padding: '0.75rem 1.25rem',
                     borderRadius: '0.75rem',
-                    border: '1px solid rgba(148, 163, 184, 0.35)',
+                    border: '1px solid var(--border-strong)',
                     background:
                       isGenerating === mode
-                        ? 'linear-gradient(135deg, #334155, #475569)'
-                        : 'linear-gradient(135deg, #0ea5e9, #6366f1)',
-                    color: '#0f172a',
+                        ? 'var(--accent-gradient-muted)'
+                        : 'var(--accent-gradient)',
+                    color: 'var(--accent-text-contrast)',
                     fontWeight: 600,
                     cursor: isGenerating === mode ? 'wait' : 'pointer',
                     display: 'flex',
@@ -447,7 +447,7 @@ export default function TranscribePage() {
                   }}
                 >
                   <span>{isGenerating === mode ? 'Generating…' : GENERATION_LABELS[mode]}</span>
-                  <span style={{ fontSize: '0.85rem', fontWeight: 500, color: '#0f172a' }}>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--accent-text-contrast)' }}>
                     {GENERATION_DESCRIPTIONS[mode]}
                   </span>
                 </button>
@@ -455,7 +455,7 @@ export default function TranscribePage() {
             </div>
 
             {generationError && (
-              <p role="alert" style={{ color: '#fca5a5' }}>
+              <p role="alert" style={{ color: 'var(--status-error)' }}>
                 {generationError}
               </p>
             )}
@@ -470,15 +470,15 @@ export default function TranscribePage() {
                 style={{
                   padding: '1.5rem',
                   borderRadius: '0.75rem',
-                  background: 'rgba(15, 23, 42, 0.45)',
-                  border: '1px solid rgba(148, 163, 184, 0.2)',
+                  background: 'var(--surface-panel-soft)',
+                  border: '1px solid var(--border-subtle)',
                   display: 'grid',
                   gap: '0.75rem'
                 }}
               >
                 <header>
                   <h3 style={{ marginBottom: '0.35rem' }}>{GENERATION_LABELS[entry.mode]}</h3>
-                  <p style={{ color: '#94a3b8', fontSize: '0.9rem' }}>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
                     {GENERATION_DESCRIPTIONS[entry.mode]}
                   </p>
                 </header>
