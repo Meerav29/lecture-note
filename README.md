@@ -6,6 +6,7 @@ An open-source, bring-your-own-key web application that turns lecture audio into
 - **Transcription workflow:** Upload files or record in-browser, then transcribe with Deepgram (default) or other pluggable providers.
 - **Lecture notes:** Summarize transcripts into organized sections, bullet points, and action items.
 - **Flashcards:** Generate study decks automatically and review them with simple spaced-repetition controls.
+- **Transcript-grounded chat:** Ask follow-up questions about a transcript and get answers sourced only from the lecture content.
 - **Bring your own key:** Keep API keys client-side; provider support lives in `lib/providers` for easy extension.
 - **Demo-ready:** Built with Next.js for fast Vercel deployment and feature-flagged demos.
 
@@ -21,13 +22,15 @@ An open-source, bring-your-own-key web application that turns lecture audio into
    ```bash
    npm run dev
    ```
-4. Visit `http://localhost:3000/transcribe` to upload audio and receive a Deepgram-powered transcript.
+4. Visit `http://localhost:3000/transcribe` to upload audio, review the transcript, generate study materials, and chat with your lecture notes.
 5. Explore `http://localhost:3000/notes` and `http://localhost:3000/cards` as the notes and flashcard modules take shape.
 
 ## Environment Variables
 | Name | Description |
 | --- | --- |
 | `DEEPGRAM_API_KEY` | API key used for Deepgram transcription requests. |
+| `OPENAI_API_KEY` | API key used for ChatGPT-powered study materials and chat replies. |
+| `CLAUDE_API_KEY` / `ANTHROPIC_API_KEY` | API key used for Claude-powered study materials and chat replies. |
 
 ## Deepgram Integration
 - Provide a `DEEPGRAM_API_KEY` in `.env.local` or the deployment environment.
