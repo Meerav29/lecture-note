@@ -1,14 +1,19 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
+import {
+  callLLM,
+  providerFromString,
+  resolveApiKey,
+  type LLMChatMessage
+} from '../../../lib/providers/llm';
 
 export const runtime = 'nodejs';
 
-type Provider = 'openai' | 'anthropic';
 type Mode = 'notes' | 'flashcards' | 'mindmap';
 
 interface GeneratePayload {
-  provider?: Provider;
+  provider?: string;
   transcript?: string;
-  mode?: Mode;
+  mode?: string;
 }
 
 const MODE_PROMPTS: Record<Mode, string> = {
@@ -20,14 +25,6 @@ const MODE_PROMPTS: Record<Mode, string> = {
     'You are an educational assistant. Turn the transcript into a hierarchical mind map outline. Use nested bullet points to show the relationships between core topics, subtopics, and supporting details.'
 };
 
-const providerFromString = (input?: string): Provider | null => {
-  if (!input) return null;
-  const normalized = input.toLowerCase();
-  if (normalized === 'openai' || normalized === 'chatgpt') return 'openai';
-  if (normalized === 'anthropic' || normalized === 'claude') return 'anthropic';
-  return null;
-};
-
 const modeFromString = (input?: string): Mode | null => {
   if (!input) return null;
   const normalized = input.toLowerCase();
@@ -35,95 +32,6 @@ const modeFromString = (input?: string): Mode | null => {
   if (normalized === 'flashcards' || normalized === 'flashcard') return 'flashcards';
   if (normalized === 'mindmap' || normalized === 'mind-map') return 'mindmap';
   return null;
-};
-
-async function callOpenAI(apiKey: string, transcript: string, mode: Mode) {
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`
-    },
-    body: JSON.stringify({
-      model: 'gpt-5',
-      temperature: 0.3,
-      messages: [
-        { role: 'system', content: MODE_PROMPTS[mode] },
-        {
-          role: 'user',
-          content:
-            'Here is the transcript of the class. Use it to complete the requested task. Transcript:\n\n' +
-            transcript
-        }
-      ]
-    })
-  });
-
-  if (!response.ok) {
-    const message = await response.text();
-    throw new Error(`OpenAI request failed: ${message}`);
-  }
-
-  const payload = (await response.json()) as {
-    choices?: Array<{ message?: { content?: string } }>;
-  };
-
-  const content = payload.choices?.[0]?.message?.content?.trim();
-  if (!content) {
-    throw new Error('OpenAI returned an empty response.');
-  }
-
-  return content;
-}
-
-async function callAnthropic(apiKey: string, transcript: string, mode: Mode) {
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01'
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-5-20250929',
-      max_tokens: 20000,
-      system: MODE_PROMPTS[mode],
-      messages: [
-        {
-          role: 'user',
-          content:
-            'Here is the transcript of the class. Use it to complete the requested task. Transcript:\n\n' +
-            transcript
-        }
-      ]
-    })
-  });
-
-  if (!response.ok) {
-    const message = await response.text();
-    throw new Error(`Anthropic request failed: ${message}`);
-  }
-
-  const payload = (await response.json()) as {
-    content?: Array<{ text?: string }>;
-  };
-
-  const content = payload.content?.[0]?.text?.trim();
-  if (!content) {
-    throw new Error('Anthropic returned an empty response.');
-  }
-
-  return content;
-}
-
-const resolveApiKey = (provider: Provider): string | null => {
-  if (provider === 'openai') {
-    const value = process.env.OPENAI_API_KEY?.trim();
-    return value?.length ? value : null;
-  }
-
-  const value = (process.env.CLAUDE_API_KEY ?? process.env.ANTHROPIC_API_KEY)?.trim();
-  return value?.length ? value : null;
 };
 
 export async function POST(request: NextRequest) {
@@ -160,14 +68,30 @@ export async function POST(request: NextRequest) {
   }
 
   if (!transcript) {
-    return NextResponse.json({ error: 'A transcript is required to generate study materials.' }, { status: 400 });
+    return NextResponse.json(
+      { error: 'A transcript is required to generate study materials.' },
+      { status: 400 }
+    );
   }
 
   try {
-    const output =
-      provider === 'openai'
-        ? await callOpenAI(apiKey, transcript, mode)
-        : await callAnthropic(apiKey, transcript, mode);
+    const messages: LLMChatMessage[] = [
+      {
+        role: 'user',
+        content:
+          'Here is the transcript of the class. Use it to complete the requested task. Transcript:\n\n' +
+          transcript
+      }
+    ];
+
+    const output = await callLLM({
+      provider,
+      apiKey,
+      system: MODE_PROMPTS[mode],
+      temperature: 0.3,
+      maxOutputTokens: provider === 'anthropic' ? 20000 : undefined,
+      messages
+    });
 
     return NextResponse.json({ output });
   } catch (error) {

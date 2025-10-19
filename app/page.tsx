@@ -1,4 +1,9 @@
+'use client';
+
 import Link from 'next/link';
+import { useState } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { AuthModal } from '../components/auth/AuthModal';
 
 const highlights = [
   {
@@ -25,22 +30,41 @@ const highlights = [
 ];
 
 export default function HomePage() {
+  const { user, loading } = useAuth();
+  const [showAuthModal, setShowAuthModal] = useState(false);
+
   return (
     <>
+      <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
+
       <section className="hero">
-        <span className="hero-pill">New • Spring refresh</span>
+        <span className="hero-pill">New • Record & Transcribe</span>
         <h2>Capture every lecture, stay in the flow.</h2>
         <p>
           Bring your audio, Lecture Note handles the rest. Transcribe, summarize, and revise with a
           calm workspace designed for students who learn better when they can focus on listening.
         </p>
         <div className="hero-actions">
-          <Link className="button primary" href="/transcribe">
-            Upload an audio file
-          </Link>
-          <Link className="button" href="/docs">
-            Explore the tools
-          </Link>
+          {!loading && (
+            <>
+              {user ? (
+                <Link className="button primary" href="/dashboard">
+                  Go to Dashboard
+                </Link>
+              ) : (
+                <button
+                  className="button primary"
+                  onClick={() => setShowAuthModal(true)}
+                  style={{ cursor: 'pointer' }}
+                >
+                  Get Started Free
+                </button>
+              )}
+              <Link className="button" href="#features">
+                Explore Features
+              </Link>
+            </>
+          )}
         </div>
         <div className="hero-meta">
           <div>

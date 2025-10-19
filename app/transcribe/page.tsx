@@ -1,11 +1,14 @@
-'use client';
+﻿'use client';
 
-import { ComponentProps, FormEvent, useMemo, useState } from 'react';
+import { ComponentProps, FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import type { Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { AudioRecorder } from '../../components/AudioRecorder';
 
 type GenerationMode = 'notes' | 'flashcards' | 'mindmap';
+
+type InputMode = 'upload' | 'record';
 
 type ProviderOption = 'openai' | 'anthropic';
 
@@ -23,6 +26,10 @@ interface GenerationResult {
   output: string;
 }
 
+interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
 const GENERATION_LABELS: Record<GenerationMode, string> = {
   notes: 'Generate class notes',
   flashcards: 'Generate flashcards',
@@ -141,7 +148,9 @@ const MarkdownOutput = ({ content }: { content: string }) => (
 );
 
 export default function TranscribePage() {
+  const [inputMode, setInputMode] = useState<InputMode>('upload');
   const [file, setFile] = useState<File | null>(null);
+  const [recordedAudio, setRecordedAudio] = useState<Blob | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<TranscriptResponse | null>(null);
@@ -150,12 +159,25 @@ export default function TranscribePage() {
   const [generationError, setGenerationError] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState<GenerationMode | null>(null);
   const [generations, setGenerations] = useState<GenerationResult[]>([]);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [chatInput, setChatInput] = useState('');
+  const [chatError, setChatError] = useState<string | null>(null);
+  const [isChatting, setIsChatting] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [chatMessages]);
 
   const fileLabel = useMemo(() => {
+    if (inputMode === 'record' && recordedAudio) {
+      const sizeMb = (recordedAudio.size / (1024 * 1024)).toFixed(2);
+      return `Recorded audio (${sizeMb} MB)`;
+    }
     if (!file) return 'Choose an audio file';
     const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
     return `${file.name} (${sizeMb} MB)`;
-  }, [file]);
+  }, [file, recordedAudio, inputMode]);
 
   const metadataSummary = useMemo(() => {
     if (!result) return '';
@@ -167,13 +189,19 @@ export default function TranscribePage() {
         `Confidence: ${(result.metadata.confidence * 100).toFixed(1)}%`
     ]
       .filter((value): value is string => Boolean(value))
-      .join(' • ');
+      .join(' â€¢ ');
   }, [result]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!file) {
-      setError('Please select an audio file before uploading.');
+
+    const audioSource = inputMode === 'record' ? recordedAudio : file;
+    if (!audioSource) {
+      setError(
+        inputMode === 'record'
+          ? 'Please record audio before transcribing.'
+          : 'Please select an audio file before uploading.'
+      );
       return;
     }
 
@@ -181,11 +209,22 @@ export default function TranscribePage() {
     setGenerationError(null);
     setGenerations([]);
     setResult(null);
+    setChatMessages([]);
+    setChatError(null);
+    setChatInput('');
+    setIsChatting(false);
     setIsSubmitting(true);
 
     try {
       const formData = new FormData();
-      formData.append('file', file);
+
+      // Convert Blob to File if it's recorded audio
+      const audioFile =
+        audioSource instanceof File
+          ? audioSource
+          : new File([audioSource], 'recording.webm', { type: 'audio/webm' });
+
+      formData.append('file', audioFile);
 
       const response = await fetch('/api/transcribe', {
         method: 'POST',
@@ -206,6 +245,11 @@ export default function TranscribePage() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleRecordingComplete = (audioBlob: Blob) => {
+    setRecordedAudio(audioBlob);
+    setError(null);
   };
 
   const handleGenerate = async (mode: GenerationMode) => {
@@ -255,6 +299,66 @@ export default function TranscribePage() {
     }
   };
 
+  const handleChatSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!result?.transcript) {
+      setChatError('Transcribe audio before asking questions.');
+      return;
+    }
+
+    const question = chatInput.trim();
+    if (!question) {
+      setChatError('Type a question before sending.');
+      return;
+    }
+
+    const previousMessages = [...chatMessages];
+    const userEntry: ChatMessage = { role: 'user', content: question };
+    const requestMessages = [...previousMessages, userEntry];
+
+    setChatError(null);
+    setChatMessages(requestMessages);
+    setChatInput('');
+    setIsChatting(true);
+
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          provider,
+          transcript: result.transcript,
+          messages: requestMessages
+        })
+      });
+
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error ?? 'Chat request failed.');
+      }
+
+      const answer =
+        typeof payload.message?.content === 'string' ? payload.message.content.trim() : '';
+
+      if (!answer) {
+        throw new Error('The assistant returned an empty response.');
+      }
+
+      setChatMessages((current) => [...current, { role: 'assistant', content: answer }]);
+    } catch (chatRequestError) {
+      const message =
+        chatRequestError instanceof Error
+          ? chatRequestError.message
+          : 'Unable to get a response from the assistant.';
+      setChatError(message);
+      setChatMessages(previousMessages);
+      setChatInput(question);
+    } finally {
+      setIsChatting(false);
+    }
+  };
   const getGeneration = (mode: GenerationMode) =>
     generations.find((entry) => entry.mode === mode)?.output ?? '';
 
@@ -271,42 +375,121 @@ export default function TranscribePage() {
       >
         <h2 style={{ fontSize: '1.75rem', marginBottom: '0.5rem' }}>Transcribe audio with Deepgram</h2>
         <p style={{ marginBottom: '1.5rem', color: 'var(--text-soft-strong)' }}>
-          Upload a pre-recorded lecture in MP3, WAV, or M4A format. Deepgram will process the entire
-          file and return the transcript in a single response.
+          Upload a pre-recorded lecture or record audio directly from your microphone. Deepgram will
+          transcribe the audio and return the transcript.
         </p>
 
         <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '1rem' }}>
-          <label
-            htmlFor="audio"
+          {/* Input Mode Toggle */}
+          <div
             style={{
               display: 'flex',
-              flexDirection: 'column',
               gap: '0.5rem',
-              padding: '1.25rem',
+              padding: '0.5rem',
               borderRadius: '0.75rem',
-              border: '2px dashed var(--border-bold)',
-              background: 'var(--surface-input)',
-              cursor: 'pointer'
+              background: 'var(--surface-panel-faint)',
+              border: '1px solid var(--border-medium)'
             }}
           >
-            <span style={{ fontWeight: 600 }}>Audio file</span>
-            <span style={{ color: 'var(--text-muted)' }}>{fileLabel}</span>
-            <input
-              id="audio"
-              name="file"
-              type="file"
-              accept="audio/*"
-              onChange={(event) => {
-                const selectedFile = event.target.files?.[0] ?? null;
-                setFile(selectedFile);
+            <button
+              type="button"
+              onClick={() => {
+                setInputMode('upload');
+                setRecordedAudio(null);
+                setError(null);
+              }}
+              style={{
+                flex: 1,
+                padding: '0.75rem 1rem',
+                borderRadius: '0.5rem',
+                border: 'none',
+                fontWeight: 600,
+                cursor: 'pointer',
+                color: inputMode === 'upload' ? 'var(--accent-text-contrast)' : 'var(--text-secondary)',
+                background: inputMode === 'upload' ? 'var(--accent-gradient)' : 'transparent',
+                transition: 'all 150ms ease'
+              }}
+            >
+              Upload File
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setInputMode('record');
+                setFile(null);
+                setError(null);
+              }}
+              style={{
+                flex: 1,
+                padding: '0.75rem 1rem',
+                borderRadius: '0.5rem',
+                border: 'none',
+                fontWeight: 600,
+                cursor: 'pointer',
+                color: inputMode === 'record' ? 'var(--accent-text-contrast)' : 'var(--text-secondary)',
+                background: inputMode === 'record' ? 'var(--accent-gradient)' : 'transparent',
+                transition: 'all 150ms ease'
+              }}
+            >
+              Record Audio
+            </button>
+          </div>
+
+          {/* File Upload Section */}
+          {inputMode === 'upload' && (
+            <label
+              htmlFor="audio"
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.5rem',
+                padding: '1.25rem',
+                borderRadius: '0.75rem',
+                border: '2px dashed var(--border-bold)',
+                background: 'var(--surface-input)',
+                cursor: 'pointer'
+              }}
+            >
+              <span style={{ fontWeight: 600 }}>Audio file</span>
+              <span style={{ color: 'var(--text-muted)' }}>{fileLabel}</span>
+              <input
+                id="audio"
+                name="file"
+                type="file"
+                accept="audio/*"
+                onChange={(event) => {
+                  const selectedFile = event.target.files?.[0] ?? null;
+                  setFile(selectedFile);
+                  setResult(null);
+                  setError(null);
+                  setGenerations([]);
+                  setGenerationError(null);
+                  setChatMessages([]);
+                  setChatError(null);
+                  setChatInput('');
+                  setIsChatting(false);
+                }}
+                style={{ display: 'none' }}
+              />
+            </label>
+          )}
+
+          {/* Recording Section */}
+          {inputMode === 'record' && (
+            <AudioRecorder
+              onRecordingComplete={handleRecordingComplete}
+              onRecordingStart={() => {
                 setResult(null);
                 setError(null);
                 setGenerations([]);
                 setGenerationError(null);
+                setChatMessages([]);
+                setChatError(null);
+                setChatInput('');
+                setIsChatting(false);
               }}
-              style={{ display: 'none' }}
             />
-          </label>
+          )}
 
           <div
             style={{
@@ -325,7 +508,14 @@ export default function TranscribePage() {
               <select
                 id="provider"
                 value={provider}
-                onChange={(event) => setProvider(event.target.value as ProviderOption)}
+                onChange={(event) => {
+                  const nextProvider = event.target.value as ProviderOption;
+                  setProvider(nextProvider);
+                  setChatMessages([]);
+                  setChatError(null);
+                  setChatInput('');
+                  setIsChatting(false);
+                }}
                 style={{
                   padding: '0.6rem 0.75rem',
                   borderRadius: '0.5rem',
@@ -350,21 +540,29 @@ export default function TranscribePage() {
 
           <button
             type="submit"
-            disabled={isSubmitting}
+            disabled={isSubmitting || (inputMode === 'record' && !recordedAudio)}
             style={{
               padding: '0.85rem 1.5rem',
               borderRadius: '999px',
               border: 'none',
               fontWeight: 600,
-              cursor: isSubmitting ? 'not-allowed' : 'pointer',
+              cursor:
+                isSubmitting || (inputMode === 'record' && !recordedAudio)
+                  ? 'not-allowed'
+                  : 'pointer',
               color: 'var(--accent-text-contrast)',
-              background: isSubmitting
-                ? 'var(--accent-gradient-muted)'
-                : 'var(--accent-gradient-alt)',
+              background:
+                isSubmitting || (inputMode === 'record' && !recordedAudio)
+                  ? 'var(--accent-gradient-muted)'
+                  : 'var(--accent-gradient-alt)',
               transition: 'filter 150ms ease'
             }}
           >
-            {isSubmitting ? 'Transcribing…' : 'Upload and transcribe'}
+            {isSubmitting
+              ? 'Transcribing…'
+              : inputMode === 'record'
+                ? 'Transcribe Recording'
+                : 'Upload and Transcribe'}
           </button>
         </form>
 
@@ -446,7 +644,7 @@ export default function TranscribePage() {
                     textAlign: 'left'
                   }}
                 >
-                  <span>{isGenerating === mode ? 'Generating…' : GENERATION_LABELS[mode]}</span>
+                  <span>{isGenerating === mode ? 'Generatingâ€¦' : GENERATION_LABELS[mode]}</span>
                   <span style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--accent-text-contrast)' }}>
                     {GENERATION_DESCRIPTIONS[mode]}
                   </span>
@@ -461,6 +659,136 @@ export default function TranscribePage() {
             )}
           </section>
 
+          <section
+            style={{
+              padding: '1.5rem',
+              borderRadius: '0.75rem',
+              background: 'var(--surface-panel-muted)',
+              border: '1px solid var(--border-default)',
+              display: 'grid',
+              gap: '1rem'
+            }}
+          >
+            <header>
+              <h3 style={{ marginBottom: '0.35rem' }}>Chat with your notes</h3>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                Ask {PROVIDER_LABELS[provider]} about the transcript. Responses stay grounded in this
+                lecture.
+              </p>
+            </header>
+
+            <div
+              style={{
+                maxHeight: '18rem',
+                overflowY: 'auto',
+                padding: '1rem',
+                borderRadius: '0.75rem',
+                border: '1px solid var(--border-subtle)',
+                background: 'var(--surface-panel-soft)',
+                display: 'grid',
+                gap: '0.75rem'
+              }}
+            >
+              {chatMessages.length === 0 ? (
+                <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.95rem' }}>
+                  Not sure where to start? Try asking for key takeaways or definitions you want to
+                  review.
+                </p>
+              ) : (
+                chatMessages.map((message, index) => (
+                  <div
+                    key={`${message.role}-${index}`}
+                    style={{
+                      justifySelf: message.role === 'user' ? 'end' : 'start',
+                      maxWidth: '85%',
+                      padding: '0.75rem 0.95rem',
+                      borderRadius: '0.9rem',
+                      background:
+                        message.role === 'user'
+                          ? 'var(--accent-gradient)'
+                          : 'var(--surface-panel-contrast)',
+                      color:
+                        message.role === 'user'
+                          ? 'var(--accent-text-contrast)'
+                          : 'var(--text-secondary)',
+                      boxShadow: 'var(--shadow-panel)',
+                      display: 'grid',
+                      gap: '0.35rem'
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        opacity: 0.75,
+                        letterSpacing: '0.02em'
+                      }}
+                    >
+                      {message.role === 'user' ? 'You' : PROVIDER_LABELS[provider]}
+                    </span>
+                    <span style={{ whiteSpace: 'pre-wrap', lineHeight: 1.55 }}>{message.content}</span>
+                  </div>
+                ))
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+
+            <form
+              onSubmit={handleChatSubmit}
+              style={{ display: 'grid', gap: '0.75rem', alignItems: 'flex-start' }}
+            >
+              <label htmlFor="chat-input" style={{ display: 'none' }}>
+                Ask a question about the transcript
+              </label>
+              <textarea
+                id="chat-input"
+                value={chatInput}
+                onChange={(event) => {
+                  setChatInput(event.target.value);
+                  if (chatError) {
+                    setChatError(null);
+                  }
+                }}
+                placeholder="Ask about key points, definitions, or next steps..."
+                rows={3}
+                disabled={isChatting}
+                style={{
+                  resize: 'vertical',
+                  minHeight: '3.5rem',
+                  padding: '0.8rem 0.95rem',
+                  borderRadius: '0.75rem',
+                  border: '1px solid var(--border-strong)',
+                  background: 'var(--surface-input)',
+                  color: 'var(--text-secondary)',
+                  fontFamily: 'inherit',
+                  lineHeight: 1.55
+                }}
+              />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                <button
+                  type="submit"
+                  disabled={isChatting || !chatInput.trim()}
+                  style={{
+                    padding: '0.75rem 1.35rem',
+                    borderRadius: '999px',
+                    border: 'none',
+                    fontWeight: 600,
+                    cursor: isChatting || !chatInput.trim() ? 'not-allowed' : 'pointer',
+                    color: 'var(--accent-text-contrast)',
+                    background:
+                      isChatting || !chatInput.trim()
+                        ? 'var(--accent-gradient-muted)'
+                        : 'var(--accent-gradient-alt)'
+                  }}
+                >
+                  {isChatting ? 'Thinking…' : 'Send'}
+                </button>
+                {chatError && (
+                  <span style={{ color: 'var(--status-error)', fontSize: '0.9rem' }}>{chatError}</span>
+                )}
+              </div>
+            </form>
+          </section>
           {(Object.keys(GENERATION_LABELS) as GenerationMode[])
             .map((mode) => ({ mode, output: getGeneration(mode) }))
             .filter((entry) => entry.output)
@@ -490,3 +818,26 @@ export default function TranscribePage() {
     </section>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

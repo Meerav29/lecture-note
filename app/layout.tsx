@@ -1,10 +1,10 @@
 import './globals.css';
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { ReactNode } from 'react';
 
-import ThemeToggle from '../components/ThemeToggle';
 import { ThemeProvider } from '../components/ThemeProvider';
+import { AuthProvider } from '../contexts/AuthContext';
+import { AppHeader } from '../components/layout/AppHeader';
 
 export const metadata: Metadata = {
   title: 'Lecture Note - AI Utilities',
@@ -17,36 +17,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="en">
       <body className="app-body">
         <ThemeProvider>
-          <div className="background-glow" aria-hidden />
-          <main className="app-shell">
-            <header className="app-header">
-              <div className="brand">
-                <span className="brand-mark" aria-hidden>
-                  LN
-                </span>
-                <div>
-                  <h1>Lecture Note</h1>
-                  <p>AI-powered tools that help you capture, review, and share every lecture.</p>
-                </div>
-              </div>
-              <div className="header-controls">
-                <nav aria-label="Primary">
-                  <Link className="nav-link" href="/transcribe">
-                    Transcribe
-                  </Link>
-                  <Link className="nav-link" href="/notes">
-                    Notes
-                  </Link>
-                  <Link className="nav-link" href="/cards">
-                    Flashcards
-                  </Link>
-                  <Link className="nav-link" href="/docs">
-                    Docs
-                  </Link>
-                </nav>
-                <ThemeToggle />
-              </div>
-            </header>
+          <AuthProvider>
+            <div className="background-glow" aria-hidden />
+            <main className="app-shell">
+              <AppHeader />
             {children}
             <footer className="app-footer">
               <p>
@@ -55,6 +29,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
               </p>
             </footer>
           </main>
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>
