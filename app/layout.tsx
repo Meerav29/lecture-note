@@ -4,6 +4,7 @@ import { ReactNode } from 'react';
 
 import { ThemeProvider } from '../components/ThemeProvider';
 import { AuthProvider } from '../contexts/AuthContext';
+import { AnonymousProvider } from '../contexts/AnonymousContext';
 import { AppHeader } from '../components/layout/AppHeader';
 
 export const metadata: Metadata = {
@@ -18,17 +19,19 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body className="app-body">
         <ThemeProvider>
           <AuthProvider>
-            <div className="background-glow" aria-hidden />
-            <main className="app-shell">
-              <AppHeader />
-            {children}
-            <footer className="app-footer">
-              <p>
-                Built for students who want to listen first and organize later. Crafted with care by
-                the Lecture Note team.
-              </p>
-            </footer>
-          </main>
+            <AnonymousProvider>
+              <div className="background-glow" aria-hidden />
+              <main className="app-shell">
+                <AppHeader />
+              {children}
+              <footer className="app-footer">
+                <p>
+                  Built for students who want to listen first and organize later. Crafted with care by
+                  the Lecture Note team.
+                </p>
+              </footer>
+            </main>
+            </AnonymousProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>

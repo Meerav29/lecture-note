@@ -100,9 +100,10 @@ export default function DashboardPage() {
 
       {/* Quick Actions */}
       <div
+        className="dashboard-quick-actions"
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+          gridTemplateColumns: 'repeat(3, 1fr)',
           gap: '1rem',
           marginBottom: '3rem'
         }}
@@ -163,6 +164,35 @@ export default function DashboardPage() {
           <h3 style={{ fontSize: '1.25rem', fontWeight: 600, margin: 0 }}>Upload File</h3>
           <p style={{ margin: 0, color: 'var(--text-muted)' }}>
             Upload pre-recorded lectures in MP3, WAV, or M4A format
+          </p>
+        </Link>
+
+        <Link
+          href="/dashboard/notes"
+          style={{
+            padding: '2rem',
+            borderRadius: '1rem',
+            background: 'var(--surface-panel)',
+            border: '1px solid var(--border-medium)',
+            color: 'var(--text-secondary)',
+            textDecoration: 'none',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.5rem',
+            boxShadow: 'var(--shadow-panel)',
+            transition: 'transform 150ms ease'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'translateY(-4px)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)';
+          }}
+        >
+          <div style={{ fontSize: '2rem' }}>📚</div>
+          <h3 style={{ fontSize: '1.25rem', fontWeight: 600, margin: 0 }}>My Notes</h3>
+          <p style={{ margin: 0, color: 'var(--text-muted)' }}>
+            Access all your recordings, transcripts, and AI-generated class notes
           </p>
         </Link>
       </div>

@@ -43,7 +43,12 @@ export async function updateSession(request: NextRequest) {
     request.nextUrl.pathname.startsWith(route)
   );
 
-  if (isProtectedRoute && !user) {
+  // Allow anonymous access to /dashboard/new with guest parameter
+  const isGuestMode =
+    request.nextUrl.pathname === '/dashboard/new' &&
+    request.nextUrl.searchParams.get('guest') === 'true';
+
+  if (isProtectedRoute && !user && !isGuestMode) {
     // Redirect to home page if not authenticated
     const url = request.nextUrl.clone();
     url.pathname = '/';

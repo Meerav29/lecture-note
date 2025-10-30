@@ -352,6 +352,31 @@ button {
   box-shadow: var(--button-primary-shadow-hover);
 }
 
+.button.secondary {
+  background: transparent;
+  border: 2px solid var(--border-medium);
+  color: var(--text-soft);
+}
+
+.button.secondary:hover,
+.button.secondary:focus-visible {
+  border-color: var(--border-strong);
+  background: var(--surface-panel-faint);
+}
+
+.hero-subtext {
+  margin: -0.5rem 0 0;
+  max-width: 50ch;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.hero-subtext strong {
+  color: var(--text-soft);
+  font-weight: 600;
+}
+
 .hero-meta {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -506,6 +531,73 @@ button {
   color: inherit;
 }
 
+.guest-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 1rem 1.5rem;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.15), rgba(245, 158, 11, 0.1));
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  backdrop-filter: blur(12px);
+  margin-bottom: 1.5rem;
+}
+
+:root[data-theme='light'] .guest-banner {
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.1), rgba(245, 158, 11, 0.08));
+  border-color: rgba(245, 158, 11, 0.35);
+}
+
+.guest-banner-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex: 1;
+}
+
+.guest-banner-icon {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.guest-banner-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.guest-banner-text strong {
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.guest-banner-text span {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.guest-banner-button {
+  padding: 0.6rem 1.2rem;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #fff;
+  border: none;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.25);
+  white-space: nowrap;
+}
+
+.guest-banner-button:hover,
+.guest-banner-button:focus-visible {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.35);
+}
+
 @media (max-width: 720px) {
   .app-body {
     padding: 2rem 1rem 4rem;
@@ -530,5 +622,19 @@ button {
 
   .hero {
     padding: 2.25rem;
+  }
+
+  .guest-banner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .guest-banner-button {
+    width: 100%;
+  }
+
+  .dashboard-quick-actions {
+    grid-template-columns: 1fr !important;
   }
 }

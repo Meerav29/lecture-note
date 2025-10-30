@@ -52,20 +52,31 @@ export default function HomePage() {
                   Go to Dashboard
                 </Link>
               ) : (
-                <button
-                  className="button primary"
-                  onClick={() => setShowAuthModal(true)}
-                  style={{ cursor: 'pointer' }}
-                >
-                  Get Started Free
-                </button>
+                <>
+                  <button
+                    className="button primary"
+                    onClick={() => setShowAuthModal(true)}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    Sign In / Sign Up
+                  </button>
+                  <Link
+                    className="button secondary"
+                    href="/dashboard/new?mode=record&guest=true"
+                  >
+                    Try Without Account
+                  </Link>
+                </>
               )}
-              <Link className="button" href="#features">
-                Explore Features
-              </Link>
             </>
           )}
         </div>
+        {!loading && !user && (
+          <p className="hero-subtext">
+            <strong>Sign in</strong> to save your lectures and access them anywhere.
+            Or <strong>try as guest</strong> — no data will be saved.
+          </p>
+        )}
         <div className="hero-meta">
           <div>
             <span className="meta-number">4.8★</span>

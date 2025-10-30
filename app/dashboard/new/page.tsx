@@ -3,13 +3,16 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '../../../contexts/AuthContext';
+import { useAnonymous } from '../../../contexts/AnonymousContext';
 import { createClient } from '../../../lib/supabase/client';
 import { AudioRecorder } from '../../../components/AudioRecorder';
+import { GuestModeBanner } from '../../../components/GuestModeBanner';
 
 function NewLectureContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useAuth();
+  const { isAnonymous, setAnonymous } = useAnonymous();
   const [mode, setMode] = useState<'record' | 'upload'>('record');
   const [title, setTitle] = useState('');
   const [file, setFile] = useState<File | null>(null);
@@ -24,7 +27,13 @@ function NewLectureContent() {
     if (modeParam === 'upload' || modeParam === 'record') {
       setMode(modeParam);
     }
-  }, [searchParams]);
+
+    // Check if guest mode is enabled via URL parameter
+    const guestParam = searchParams.get('guest');
+    if (guestParam === 'true' && !user) {
+      setAnonymous(true);
+    }
+  }, [searchParams, user, setAnonymous]);
 
   const handleRecordingComplete = (blob: Blob) => {
     setRecordedAudio(blob);
@@ -48,9 +57,14 @@ function NewLectureContent() {
     const fileExt = audioFile.name.split('.').pop();
     const fileName = `${userId}/${Date.now()}.${fileExt}`;
 
+    console.log('Uploading to storage:', fileName);
     const { data, error } = await supabase.storage.from('lecture-audio').upload(fileName, audioFile);
 
-    if (error) throw error;
+    if (error) {
+      console.error('Storage upload error:', error);
+      throw error;
+    }
+    console.log('Storage upload success:', data.path);
     return data.path;
   };
 
@@ -72,19 +86,35 @@ function NewLectureContent() {
   };
 
   const handleSubmit = async () => {
-    if (!user) {
-      setError('You must be signed in to create a lecture');
-      return;
-    }
-
-    if (!title.trim()) {
-      setError('Please enter a title for your lecture');
-      return;
-    }
-
     const audioSource = mode === 'record' ? recordedAudio : file;
     if (!audioSource) {
       setError(mode === 'record' ? 'Please record audio first' : 'Please select a file');
+      return;
+    }
+
+    // For anonymous users, redirect to /transcribe with the audio
+    if (isAnonymous || !user) {
+      // Convert Blob to File if needed
+      const audioFile =
+        audioSource instanceof File
+          ? audioSource
+          : new File([audioSource], 'recording.webm', { type: 'audio/webm' });
+
+      // Store in sessionStorage for the transcribe page
+      const reader = new FileReader();
+      reader.onload = () => {
+        sessionStorage.setItem('pendingAudioFile', reader.result as string);
+        sessionStorage.setItem('pendingAudioFileName', audioFile.name);
+        sessionStorage.setItem('pendingAudioType', audioFile.type);
+        router.push('/transcribe');
+      };
+      reader.readAsDataURL(audioFile);
+      return;
+    }
+
+    // For authenticated users, save to database
+    if (!title.trim()) {
+      setError('Please enter a title for your lecture');
       return;
     }
 
@@ -110,6 +140,9 @@ function NewLectureContent() {
       setUploadProgress(70);
 
       // Save to database
+      console.log('Inserting lecture with user_id:', user.id);
+      console.log('Checking auth state:', await supabase.auth.getUser());
+
       const { data: lecture, error: dbError } = await supabase
         .from('lectures')
         .insert({
@@ -123,7 +156,11 @@ function NewLectureContent() {
         .select()
         .single();
 
-      if (dbError) throw dbError;
+      if (dbError) {
+        console.error('Database insert error:', dbError);
+        throw dbError;
+      }
+      console.log('Lecture saved successfully:', lecture);
 
       setUploadProgress(100);
 
@@ -138,18 +175,20 @@ function NewLectureContent() {
   };
 
   return (
-    <div
-      style={{
-        maxWidth: '800px',
-        margin: '2rem auto',
-        padding: '2rem',
-        borderRadius: '1rem',
-        background: 'var(--surface-panel)',
-        border: '1px solid var(--border-medium)',
-        boxShadow: 'var(--shadow-panel)'
-      }}
-    >
-      {/* Header */}
+    <>
+      <GuestModeBanner />
+      <div
+        style={{
+          maxWidth: '800px',
+          margin: '2rem auto',
+          padding: '2rem',
+          borderRadius: '1rem',
+          background: 'var(--surface-panel)',
+          border: '1px solid var(--border-medium)',
+          boxShadow: 'var(--shadow-panel)'
+        }}
+      >
+        {/* Header */}
       <div style={{ marginBottom: '2rem' }}>
         <button
           onClick={() => router.back()}
@@ -224,37 +263,39 @@ function NewLectureContent() {
         </button>
       </div>
 
-      {/* Title Input */}
-      <div style={{ marginBottom: '1.5rem' }}>
-        <label
-          htmlFor="title"
-          style={{
-            display: 'block',
-            marginBottom: '0.5rem',
-            fontWeight: 600,
-            color: 'var(--text-secondary)'
-          }}
-        >
-          Lecture Title
-        </label>
-        <input
-          id="title"
-          type="text"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="e.g., Biology 101 - Cell Division"
-          disabled={isUploading}
-          style={{
-            width: '100%',
-            padding: '0.875rem',
-            borderRadius: '0.5rem',
-            border: '1px solid var(--border-stronger)',
-            background: 'var(--surface-input)',
-            color: 'var(--text-secondary)',
-            fontSize: '1rem'
-          }}
-        />
-      </div>
+      {/* Title Input - only for authenticated users */}
+      {!isAnonymous && user && (
+        <div style={{ marginBottom: '1.5rem' }}>
+          <label
+            htmlFor="title"
+            style={{
+              display: 'block',
+              marginBottom: '0.5rem',
+              fontWeight: 600,
+              color: 'var(--text-secondary)'
+            }}
+          >
+            Lecture Title
+          </label>
+          <input
+            id="title"
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="e.g., Biology 101 - Cell Division"
+            disabled={isUploading}
+            style={{
+              width: '100%',
+              padding: '0.875rem',
+              borderRadius: '0.5rem',
+              border: '1px solid var(--border-stronger)',
+              background: 'var(--surface-input)',
+              color: 'var(--text-secondary)',
+              fontSize: '1rem'
+            }}
+          />
+        </div>
+      )}
 
       {/* Recording Interface */}
       {mode === 'record' && (
@@ -381,7 +422,7 @@ function NewLectureContent() {
         onClick={handleSubmit}
         disabled={
           isUploading ||
-          !title.trim() ||
+          (user && !isAnonymous && !title.trim()) ||
           (mode === 'record' ? !recordedAudio : !file)
         }
         style={{
@@ -393,14 +434,14 @@ function NewLectureContent() {
           fontSize: '1rem',
           cursor:
             isUploading ||
-            !title.trim() ||
+            (user && !isAnonymous && !title.trim()) ||
             (mode === 'record' ? !recordedAudio : !file)
               ? 'not-allowed'
               : 'pointer',
           color: 'var(--accent-text-contrast)',
           background:
             isUploading ||
-            !title.trim() ||
+            (user && !isAnonymous && !title.trim()) ||
             (mode === 'record' ? !recordedAudio : !file)
               ? 'var(--accent-gradient-muted)'
               : 'var(--accent-gradient-alt)',
@@ -409,11 +450,12 @@ function NewLectureContent() {
       >
         {isUploading
           ? 'Processing...'
-          : mode === 'record'
-            ? 'Save & Transcribe Recording'
-            : 'Upload & Transcribe'}
+          : isAnonymous || !user
+            ? (mode === 'record' ? 'Transcribe Recording' : 'Transcribe Upload')
+            : (mode === 'record' ? 'Save & Transcribe Recording' : 'Upload & Transcribe')}
       </button>
     </div>
+    </>
   );
 }
 
