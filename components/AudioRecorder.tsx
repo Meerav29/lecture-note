@@ -56,7 +56,8 @@ export function AudioRecorder({
 
       audioContextRef.current = audioContext;
       analyserRef.current = analyser;
-      dataArrayRef.current = new Uint8Array(analyser.frequencyBinCount);
+      const bufferLength = analyser.frequencyBinCount;
+      dataArrayRef.current = new Uint8Array(bufferLength);
 
       return stream;
     } catch (err) {
@@ -115,10 +116,9 @@ export function AudioRecorder({
     ctx.lineTo(rect.width, rect.height / 2);
     ctx.stroke();
 
-    if (isRecording && !isPaused) {
-      animationRef.current = requestAnimationFrame(drawWaveform);
-    }
-  }, [isRecording, isPaused]);
+    // Continue animation loop
+    animationRef.current = requestAnimationFrame(drawWaveform);
+  }, []);
 
   // Start recording
   const startRecording = useCallback(async () => {
@@ -195,10 +195,14 @@ export function AudioRecorder({
     if (isPaused) {
       mediaRecorderRef.current.resume();
       setIsPaused(false);
-      drawWaveform();
+      // Restart animation
+      if (!animationRef.current) {
+        drawWaveform();
+      }
     } else {
       mediaRecorderRef.current.pause();
       setIsPaused(true);
+      // Stop animation
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
         animationRef.current = null;
