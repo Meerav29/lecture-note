@@ -168,7 +168,12 @@ function NewLectureContent() {
       router.push(`/lecture/${lecture.id}`);
     } catch (err) {
       console.error('Error creating lecture:', err);
-      setError(err instanceof Error ? err.message : 'Failed to create lecture');
+      const errorMessage = err instanceof Error
+        ? err.message
+        : typeof err === 'object' && err !== null
+          ? JSON.stringify(err)
+          : 'Failed to create lecture';
+      setError(`Failed to create lecture: ${errorMessage}`);
       setIsUploading(false);
       setUploadProgress(0);
     }
