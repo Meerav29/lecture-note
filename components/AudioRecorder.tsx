@@ -18,6 +18,7 @@ export function AudioRecorder({
   const [recordingTime, setRecordingTime] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [hasPermission, setHasPermission] = useState(false);
+  const [recordingSize, setRecordingSize] = useState(0);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -138,6 +139,9 @@ export function AudioRecorder({
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
           audioChunksRef.current.push(event.data);
+          // Update recording size
+          const totalSize = audioChunksRef.current.reduce((sum, chunk) => sum + chunk.size, 0);
+          setRecordingSize(totalSize);
         }
       };
 
@@ -153,6 +157,7 @@ export function AudioRecorder({
       setIsRecording(true);
       setIsPaused(false);
       setRecordingTime(0);
+      setRecordingSize(0);
 
       // Start timer
       timerRef.current = setInterval(() => {
@@ -249,7 +254,7 @@ export function AudioRecorder({
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <h3 style={{ fontSize: '1rem', fontWeight: 600, margin: 0 }}>Record Audio</h3>
         {isRecording && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <div
               style={{
                 width: '0.5rem',
@@ -261,6 +266,9 @@ export function AudioRecorder({
             />
             <span style={{ fontFamily: 'monospace', color: 'var(--text-secondary)' }}>
               {formatTime(recordingTime)}
+            </span>
+            <span style={{ fontFamily: 'monospace', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+              {(recordingSize / (1024 * 1024)).toFixed(1)} MB
             </span>
           </div>
         )}
@@ -366,6 +374,25 @@ export function AudioRecorder({
         <p role="alert" style={{ color: 'var(--status-error)', margin: 0, fontSize: '0.9rem' }}>
           {error}
         </p>
+      )}
+
+      {/* File size warning */}
+      {isRecording && recordingSize > 50 * 1024 * 1024 && (
+        <div
+          style={{
+            padding: '0.75rem',
+            borderRadius: '0.5rem',
+            background: 'rgba(251, 191, 36, 0.1)',
+            border: '1px solid #f59e0b',
+            color: '#f59e0b',
+            fontSize: '0.85rem'
+          }}
+        >
+          Warning: Recording size is {(recordingSize / (1024 * 1024)).toFixed(1)} MB.
+          {recordingSize > 80 * 1024 * 1024
+            ? ' Consider stopping soon to avoid exceeding the 100MB limit.'
+            : ' Large files may take longer to process.'}
+        </div>
       )}
 
       {!hasPermission && !isRecording && (

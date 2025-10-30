@@ -1,6 +1,19 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // Increase body size limit for audio file uploads (default is 4MB)
+  // Set to 100MB to support longer recordings
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '100mb',
+    },
+  },
+  // Also configure for API routes
+  api: {
+    bodyParser: {
+      sizeLimit: '100mb',
+    },
+  },
   webpack: (config, { isServer }) => {
     if (isServer) {
       const externals = Array.isArray(config.externals) ? config.externals : [];
