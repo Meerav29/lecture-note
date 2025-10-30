@@ -150,7 +150,7 @@ function NewLectureContent() {
           title: title.trim(),
           audio_url: audioPath,
           transcript: transcriptData.transcript,
-          duration: transcriptData.metadata?.duration || null,
+          duration: transcriptData.metadata?.duration ? Math.round(transcriptData.metadata.duration) : null,
           metadata: transcriptData.metadata || {}
         })
         .select()
