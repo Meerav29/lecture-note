@@ -364,17 +364,9 @@ export default function TranscribePage() {
 
   return (
     <section style={{ display: 'grid', gap: '1.5rem', marginBottom: '4rem' }}>
-      <article
-        style={{
-          padding: '2rem',
-          borderRadius: '1rem',
-          background: 'var(--surface-panel)',
-          border: '1px solid var(--border-medium)',
-          boxShadow: 'var(--shadow-panel)'
-        }}
-      >
+      <article className="interaction-panel" style={{ display: 'grid', gap: '1.5rem' }}>
         <h2 style={{ fontSize: '1.75rem', marginBottom: '0.5rem' }}>Transcribe audio with Deepgram</h2>
-        <p style={{ marginBottom: '1.5rem', color: 'var(--text-soft-strong)' }}>
+        <p style={{ margin: 0, color: 'var(--text-soft-strong)' }}>
           Upload a pre-recorded lecture or record audio directly from your microphone. Deepgram will
           transcribe the audio and return the transcript.
         </p>
@@ -575,9 +567,8 @@ export default function TranscribePage() {
 
       {result && (
         <article
+          className="interaction-panel"
           style={{
-            padding: '2rem',
-            borderRadius: '1rem',
             background: 'var(--surface-panel-contrast)',
             border: '1px solid var(--border-default)',
             whiteSpace: 'pre-wrap',

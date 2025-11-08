@@ -75,6 +75,9 @@
   --toggle-indicator: rgba(224, 231, 255, 0.95);
   --toggle-text: rgba(226, 232, 240, 0.92);
   --toggle-border: rgba(148, 163, 184, 0.25);
+  --interaction-panel-max-width: 800px;
+  --interaction-panel-padding: clamp(1.5rem, 1.1rem + 1vw, 2.25rem);
+  --interaction-panel-radius: 1rem;
 }
 
 :root[data-theme='light'] {
@@ -186,6 +189,17 @@ button {
   background: var(--background-glow);
   filter: blur(80px);
   z-index: 0;
+}
+
+.interaction-panel {
+  width: 100%;
+  max-width: var(--interaction-panel-max-width);
+  margin: 0 auto;
+  padding: var(--interaction-panel-padding);
+  border-radius: var(--interaction-panel-radius);
+  background: var(--surface-panel);
+  border: 1px solid var(--border-medium);
+  box-shadow: var(--shadow-panel);
 }
 
 .app-shell {

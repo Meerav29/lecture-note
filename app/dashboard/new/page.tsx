@@ -182,17 +182,7 @@ function NewLectureContent() {
   return (
     <>
       <GuestModeBanner />
-      <div
-        style={{
-          maxWidth: '800px',
-          margin: '2rem auto',
-          padding: '2rem',
-          borderRadius: '1rem',
-          background: 'var(--surface-panel)',
-          border: '1px solid var(--border-medium)',
-          boxShadow: 'var(--shadow-panel)'
-        }}
-      >
+      <div className="interaction-panel" style={{ marginTop: '2rem', marginBottom: '2rem' }}>
         {/* Header */}
       <div style={{ marginBottom: '2rem' }}>
         <button
