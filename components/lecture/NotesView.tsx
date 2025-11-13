@@ -27,21 +27,6 @@ export function NotesView({ lecture, content, onContentUpdate }: NotesViewProps)
     }
   }, [content]);
 
-  // Auto-save with debounce
-  useEffect(() => {
-    const storedText = typeof content?.content === 'string' ? content.content : '';
-    if (!isEditing || !editText || editText === storedText) {
-      return;
-    }
-
-    setSaveStatus('saving');
-    const timer = setTimeout(async () => {
-      await saveNotes(editText);
-    }, 1500);
-
-    return () => clearTimeout(timer);
-  }, [content?.content, editText, isEditing, saveNotes]);
-
   const saveNotes = useCallback(
     async (text: string) => {
       try {
@@ -68,6 +53,21 @@ export function NotesView({ lecture, content, onContentUpdate }: NotesViewProps)
     },
     [lecture.id, onContentUpdate, provider, supabase]
   );
+
+  // Auto-save with debounce
+  useEffect(() => {
+    const storedText = typeof content?.content === 'string' ? content.content : '';
+    if (!isEditing || !editText || editText === storedText) {
+      return;
+    }
+
+    setSaveStatus('saving');
+    const timer = setTimeout(async () => {
+      await saveNotes(editText);
+    }, 1500);
+
+    return () => clearTimeout(timer);
+  }, [content?.content, editText, isEditing, saveNotes]);
 
   const generateNotes = async () => {
     if (!lecture.transcript) {
