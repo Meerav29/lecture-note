@@ -233,6 +233,7 @@ All protected with Row Level Security (RLS)
 *   Verify DEEPGRAM\_API\_KEY is valid
 *   Check audio file is valid format
 *   Look at server console for detailed error
+*   If you enabled the background queue, make sure the Supabase `transcription-worker` function is deployed and scheduled (see `docs/BACKGROUND_TRANSCRIPTION.md`)
 
 ### "Generation failed"
 

@@ -29,7 +29,8 @@ export function NotesView({ lecture, content, onContentUpdate }: NotesViewProps)
 
   // Auto-save with debounce
   useEffect(() => {
-    if (!isEditing || !editText || editText === (typeof content?.content === 'string' ? content.content : '')) {
+    const storedText = typeof content?.content === 'string' ? content.content : '';
+    if (!isEditing || !editText || editText === storedText) {
       return;
     }
 
@@ -39,31 +40,34 @@ export function NotesView({ lecture, content, onContentUpdate }: NotesViewProps)
     }, 1500);
 
     return () => clearTimeout(timer);
-  }, [editText, isEditing]);
+  }, [content?.content, editText, isEditing, saveNotes]);
 
-  const saveNotes = async (text: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('lecture_content')
-        .upsert({
-          lecture_id: lecture.id,
-          content_type: 'notes',
-          content: text,
-          provider
-        })
-        .select()
-        .single();
+  const saveNotes = useCallback(
+    async (text: string) => {
+      try {
+        const { data, error } = await supabase
+          .from('lecture_content')
+          .upsert({
+            lecture_id: lecture.id,
+            content_type: 'notes',
+            content: text,
+            provider
+          })
+          .select()
+          .single();
 
-      if (error) throw error;
+        if (error) throw error;
 
-      onContentUpdate(data);
-      setSaveStatus('saved');
-      setTimeout(() => setSaveStatus(null), 2000);
-    } catch (err) {
-      console.error('Error saving notes:', err);
-      setSaveStatus(null);
-    }
-  };
+        onContentUpdate(data);
+        setSaveStatus('saved');
+        setTimeout(() => setSaveStatus(null), 2000);
+      } catch (err) {
+        console.error('Error saving notes:', err);
+        setSaveStatus(null);
+      }
+    },
+    [lecture.id, onContentUpdate, provider, supabase]
+  );
 
   const generateNotes = async () => {
     if (!lecture.transcript) {

@@ -12,6 +12,8 @@ export interface Database {
           transcript: string | null;
           duration: number | null;
           metadata: Json;
+          transcription_status: 'pending' | 'processing' | 'completed' | 'failed';
+          transcription_error: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -23,6 +25,8 @@ export interface Database {
           transcript?: string | null;
           duration?: number | null;
           metadata?: Json;
+          transcription_status?: 'pending' | 'processing' | 'completed' | 'failed';
+          transcription_error?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -34,6 +38,8 @@ export interface Database {
           transcript?: string | null;
           duration?: number | null;
           metadata?: Json;
+          transcription_status?: 'pending' | 'processing' | 'completed' | 'failed';
+          transcription_error?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -93,6 +99,53 @@ export interface Database {
           created_at?: string;
         };
       };
+      transcription_jobs: {
+        Row: {
+          id: string;
+          lecture_id: string;
+          user_id: string;
+          audio_path: string;
+          audio_mime_type: string | null;
+          status: 'pending' | 'processing' | 'completed' | 'failed';
+          error: string | null;
+          attempts: number;
+          metadata: Json;
+          started_at: string | null;
+          completed_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          lecture_id: string;
+          user_id: string;
+          audio_path: string;
+          audio_mime_type?: string | null;
+          status?: 'pending' | 'processing' | 'completed' | 'failed';
+          error?: string | null;
+          attempts?: number;
+          metadata?: Json;
+          started_at?: string | null;
+          completed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          lecture_id?: string;
+          user_id?: string;
+          audio_path?: string;
+          audio_mime_type?: string | null;
+          status?: 'pending' | 'processing' | 'completed' | 'failed';
+          error?: string | null;
+          attempts?: number;
+          metadata?: Json;
+          started_at?: string | null;
+          completed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
     };
   };
 }
@@ -109,3 +162,7 @@ export type LectureContentUpdate = Database['public']['Tables']['lecture_content
 export type LectureChat = Database['public']['Tables']['lecture_chats']['Row'];
 export type LectureChatInsert = Database['public']['Tables']['lecture_chats']['Insert'];
 export type LectureChatUpdate = Database['public']['Tables']['lecture_chats']['Update'];
+
+export type TranscriptionJob = Database['public']['Tables']['transcription_jobs']['Row'];
+export type TranscriptionJobInsert = Database['public']['Tables']['transcription_jobs']['Insert'];
+export type TranscriptionJobUpdate = Database['public']['Tables']['transcription_jobs']['Update'];

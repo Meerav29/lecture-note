@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { createClient } from '../../lib/supabase/client';
 import type { Lecture } from '../../lib/supabase/types';
@@ -13,13 +13,7 @@ export default function DashboardPage() {
   const [showRecordModal, setShowRecordModal] = useState(false);
   const supabase = createClient();
 
-  useEffect(() => {
-    if (user) {
-      fetchLectures();
-    }
-  }, [user]);
-
-  const fetchLectures = async () => {
+  const fetchLectures = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('lectures')
@@ -33,7 +27,13 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [supabase]);
+
+  useEffect(() => {
+    if (user) {
+      fetchLectures();
+    }
+  }, [user, fetchLectures]);
 
   const deleteLecture = async (id: string) => {
     if (!confirm('Are you sure you want to delete this lecture?')) return;
@@ -262,6 +262,29 @@ export default function DashboardPage() {
                   >
                     {lecture.transcript}
                   </p>
+                )}
+                {!lecture.transcript && (
+                  <div
+                    style={{
+                      fontSize: '0.85rem',
+                      color:
+                        lecture.transcription_status === 'failed'
+                          ? 'var(--status-error)'
+                          : 'var(--text-muted)',
+                      padding: '0.5rem',
+                      borderRadius: '0.5rem',
+                      background:
+                        lecture.transcription_status === 'failed'
+                          ? 'rgba(248, 113, 113, 0.08)'
+                          : 'var(--surface-panel-soft)'
+                    }}
+                  >
+                    {lecture.transcription_status === 'failed'
+                      ? `Transcription failed${lecture.transcription_error ? `: ${lecture.transcription_error}` : ''}`
+                      : lecture.transcription_status === 'processing'
+                        ? 'Transcription in progress…'
+                        : 'Transcription queued'}
+                  </div>
                 )}
 
                 <div style={{ display: 'flex', gap: '0.75rem', marginTop: 'auto' }}>

@@ -1,5 +1,14 @@
--- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- Shared enum for lecture + job status tracking
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_type WHERE typname = 'transcription_status'
+  ) THEN
+    CREATE TYPE transcription_status AS ENUM ('pending', 'processing', 'completed', 'failed');
+  END IF;
+END$$;
 
 -- Lectures table
 CREATE TABLE IF NOT EXISTS lectures (
@@ -10,6 +19,25 @@ CREATE TABLE IF NOT EXISTS lectures (
   transcript TEXT,
   duration INTEGER, -- in seconds
   metadata JSONB DEFAULT '{}'::jsonb,
+  transcription_status transcription_status NOT NULL DEFAULT 'pending',
+  transcription_error TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Background transcription jobs
+CREATE TABLE IF NOT EXISTS transcription_jobs (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  lecture_id UUID REFERENCES lectures(id) ON DELETE CASCADE NOT NULL,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  audio_path TEXT NOT NULL,
+  audio_mime_type TEXT,
+  status transcription_status NOT NULL DEFAULT 'pending',
+  error TEXT,
+  attempts INTEGER NOT NULL DEFAULT 0,
+  metadata JSONB DEFAULT '{}'::jsonb,
+  started_at TIMESTAMP WITH TIME ZONE,
+  completed_at TIMESTAMP WITH TIME ZONE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -42,11 +70,14 @@ CREATE INDEX IF NOT EXISTS idx_lectures_created_at ON lectures(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_lecture_content_lecture_id ON lecture_content(lecture_id);
 CREATE INDEX IF NOT EXISTS idx_lecture_chats_lecture_id ON lecture_chats(lecture_id);
 CREATE INDEX IF NOT EXISTS idx_lecture_chats_created_at ON lecture_chats(created_at);
+CREATE INDEX IF NOT EXISTS idx_transcription_jobs_status_created_at ON transcription_jobs(status, created_at);
+CREATE INDEX IF NOT EXISTS idx_transcription_jobs_lecture_id ON transcription_jobs(lecture_id);
 
 -- Enable Row Level Security
 ALTER TABLE lectures ENABLE ROW LEVEL SECURITY;
 ALTER TABLE lecture_content ENABLE ROW LEVEL SECURITY;
 ALTER TABLE lecture_chats ENABLE ROW LEVEL SECURITY;
+ALTER TABLE transcription_jobs ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies for lectures
 CREATE POLICY "Users can view own lectures"
@@ -137,6 +168,15 @@ CREATE POLICY "Users can delete own lecture chats"
     )
   );
 
+-- RLS Policies for transcription jobs
+CREATE POLICY "Users can view own transcription jobs"
+  ON transcription_jobs FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own transcription jobs"
+  ON transcription_jobs FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
 -- Storage bucket for audio files
 -- Run this in the Supabase Storage interface or via SQL:
 -- INSERT INTO storage.buckets (id, name, public) VALUES ('lecture-audio', 'lecture-audio', false);
@@ -180,5 +220,10 @@ CREATE TRIGGER update_lectures_updated_at
 
 CREATE TRIGGER update_lecture_content_updated_at
   BEFORE UPDATE ON lecture_content
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_transcription_jobs_updated_at
+  BEFORE UPDATE ON transcription_jobs
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();

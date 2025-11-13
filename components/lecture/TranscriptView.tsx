@@ -7,6 +7,56 @@ interface TranscriptViewProps {
 }
 
 export function TranscriptView({ lecture }: TranscriptViewProps) {
+  if (lecture.transcription_status === 'pending' || lecture.transcription_status === 'processing') {
+    return (
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minHeight: '60vh',
+          gap: '1rem',
+          padding: '2rem',
+          textAlign: 'center'
+        }}
+      >
+        <div style={{ fontSize: '3.5rem' }}>⏳</div>
+        <h3 style={{ fontSize: '1.5rem', margin: 0, color: 'var(--text-primary)' }}>Transcription in progress</h3>
+        <p style={{ color: 'var(--text-muted)', maxWidth: '420px' }}>
+          We&apos;re generating the transcript for this lecture. You can safely leave this page; we&apos;ll update it
+          automatically once the transcript is ready.
+        </p>
+      </div>
+    );
+  }
+
+  if (lecture.transcription_status === 'failed' && !lecture.transcript) {
+    return (
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minHeight: '60vh',
+          gap: '1rem',
+          padding: '2rem',
+          textAlign: 'center'
+        }}
+      >
+        <div style={{ fontSize: '3.5rem' }}>⚠️</div>
+        <h3 style={{ fontSize: '1.5rem', margin: 0, color: 'var(--text-primary)' }}>Transcription failed</h3>
+        <p style={{ color: 'var(--status-error)', maxWidth: '420px' }}>
+          {lecture.transcription_error || 'The transcription provider returned an error. Try re-queueing the job.'}
+        </p>
+        <p style={{ color: 'var(--text-muted)', maxWidth: '420px' }}>
+          Once you resolve the issue, retry the transcription from the dashboard.
+        </p>
+      </div>
+    );
+  }
+
   if (!lecture.transcript) {
     return (
       <div

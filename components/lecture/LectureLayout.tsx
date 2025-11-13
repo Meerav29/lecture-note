@@ -29,6 +29,18 @@ export function LectureLayout({
 }: LectureLayoutProps) {
   const [activeTab, setActiveTab] = useState<ContentType>('transcript');
   const router = useRouter();
+  const statusLabelMap: Record<Lecture['transcription_status'], string> = {
+    pending: 'Queued',
+    processing: 'Processing',
+    completed: 'Ready',
+    failed: 'Failed'
+  };
+  const statusColorMap: Record<Lecture['transcription_status'], string> = {
+    pending: 'var(--text-muted)',
+    processing: 'var(--accent-primary)',
+    completed: 'var(--status-success)',
+    failed: 'var(--status-error)'
+  };
 
   const renderContent = () => {
     switch (activeTab) {
@@ -107,18 +119,35 @@ export function LectureLayout({
             ←
           </button>
           <div style={{ minWidth: 0 }}>
-            <h1
-              style={{
-                fontSize: '1.5rem',
-                margin: 0,
-                color: 'var(--text-primary)',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap'
-              }}
-            >
-              {lecture.title}
-            </h1>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0 }}>
+              <h1
+                style={{
+                  fontSize: '1.5rem',
+                  margin: 0,
+                  color: 'var(--text-primary)',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                {lecture.title}
+              </h1>
+              <span
+                style={{
+                  padding: '0.15rem 0.75rem',
+                  borderRadius: '999px',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  border: '1px solid var(--border-medium)',
+                  color: statusColorMap[lecture.transcription_status],
+                  background: 'var(--surface-panel-faint)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.03em'
+                }}
+              >
+                {statusLabelMap[lecture.transcription_status]}
+              </span>
+            </div>
             {lecture.duration && (
               <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.875rem', color: 'var(--text-muted)' }}>
                 {Math.floor(lecture.duration / 60)}:{(lecture.duration % 60).toString().padStart(2, '0')} •{' '}

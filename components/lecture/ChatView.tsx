@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import type { Lecture } from '../../lib/supabase/types';
 import { createClient } from '../../lib/supabase/client';
 
@@ -23,15 +23,7 @@ export function ChatView({ lecture }: ChatViewProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const supabase = createClient();
 
-  useEffect(() => {
-    fetchChatHistory();
-  }, []);
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-
-  const fetchChatHistory = async () => {
+  const fetchChatHistory = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('lecture_chats')
@@ -54,7 +46,16 @@ export function ChatView({ lecture }: ChatViewProps) {
     } finally {
       setLoadingHistory(false);
     }
-  };
+  }, [lecture.id, supabase]);
+
+  useEffect(() => {
+    fetchChatHistory();
+  }, [fetchChatHistory]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
 
   const sendMessage = async () => {
     const question = input.trim();

@@ -37,6 +37,9 @@ An open-source, bring-your-own-key web application that turns lecture audio into
 - `lib/providers/deepgram.ts` wraps the Deepgram SDK and can be customized with models, summarization, and formatting settings.
 - `app/api/transcribe/route.ts` accepts uploaded audio, forwards it to the Deepgram provider, and returns the transcript plus metadata for the UI.
 
+## Background Transcription
+Long recordings are now queued and processed by a Supabase Edge Function so Vercel requests never time out. Follow [`docs/BACKGROUND_TRANSCRIPTION.md`](docs/BACKGROUND_TRANSCRIPTION.md) to run the database migration, deploy the worker, and schedule it on your project.
+
 ## Roadmap & Contributions
 - Track upcoming work and architecture decisions in [`docs/roadmap.md`](docs/roadmap.md).
 - Open issues or pull requests for new providers, UI polish, or documentation improvements.

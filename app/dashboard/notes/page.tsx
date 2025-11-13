@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { createClient } from '../../../lib/supabase/client';
 import type { Lecture } from '../../../lib/supabase/types';
@@ -16,13 +16,7 @@ export default function MyNotesPage() {
   const [filterType, setFilterType] = useState<'all' | 'with-notes' | 'no-notes'>('all');
   const supabase = createClient();
 
-  useEffect(() => {
-    if (user) {
-      fetchLectures();
-    }
-  }, [user]);
-
-  const fetchLectures = async () => {
+  const fetchLectures = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('lectures')
@@ -36,7 +30,13 @@ export default function MyNotesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [supabase]);
+
+  useEffect(() => {
+    if (user) {
+      fetchLectures();
+    }
+  }, [user, fetchLectures]);
 
   const filteredLectures = lectures.filter((lecture) => {
     // Search filter

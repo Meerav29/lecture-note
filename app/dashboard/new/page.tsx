@@ -68,21 +68,25 @@ function NewLectureContent() {
     return data.path;
   };
 
-  const transcribeAudio = async (audioFile: File) => {
-    const formData = new FormData();
-    formData.append('file', audioFile);
-
-    const response = await fetch('/api/transcribe', {
+  const enqueueTranscriptionJob = async (lectureId: string, audioPath: string, audioMimeType?: string | null) => {
+    const response = await fetch('/api/transcriptions', {
       method: 'POST',
-      body: formData
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        lectureId,
+        audioPath,
+        audioMimeType: audioMimeType ?? null
+      })
     });
 
     if (!response.ok) {
       const payload = await response.json().catch(() => ({}));
-      throw new Error(payload.error ?? 'Transcription failed');
+      throw new Error(payload.error ?? 'Failed to queue transcription job.');
     }
 
-    return await response.json();
+    return (await response.json()) as { jobId: string; status: string };
   };
 
   const handleSubmit = async () => {
@@ -122,6 +126,8 @@ function NewLectureContent() {
     setError(null);
     setUploadProgress(10);
 
+    let createdLectureId: string | null = null;
+
     try {
       // Convert Blob to File if needed
       const audioFile =
@@ -133,13 +139,9 @@ function NewLectureContent() {
 
       // Upload to storage
       const audioPath = await uploadAudioToStorage(audioFile, user.id);
-      setUploadProgress(40);
+      setUploadProgress(45);
 
-      // Transcribe
-      const transcriptData = await transcribeAudio(audioFile);
-      setUploadProgress(70);
-
-      // Save to database
+      // Save lecture metadata without waiting for transcription
       console.log('Inserting lecture with user_id:', user.id);
       console.log('Checking auth state:', await supabase.auth.getUser());
 
@@ -149,23 +151,36 @@ function NewLectureContent() {
           user_id: user.id,
           title: title.trim(),
           audio_url: audioPath,
-          transcript: transcriptData.transcript,
-          duration: transcriptData.metadata?.duration ? Math.round(transcriptData.metadata.duration) : null,
-          metadata: transcriptData.metadata || {}
+          transcript: null,
+          duration: null,
+          metadata: {
+            ...(audioFile.name ? { source_file_name: audioFile.name } : {}),
+            ...(audioFile.type ? { source_file_type: audioFile.type } : {}),
+            upload_size_bytes: audioFile.size,
+            audio_path: audioPath
+          },
+          transcription_status: 'pending',
+          transcription_error: null
         })
         .select()
         .single();
 
-      if (dbError) {
+      if (dbError || !lecture) {
         console.error('Database insert error:', dbError);
-        throw dbError;
+        throw dbError ?? new Error('Failed to save lecture record.');
       }
       console.log('Lecture saved successfully:', lecture);
+      createdLectureId = lecture.id;
 
-      setUploadProgress(100);
+      setUploadProgress(70);
 
-      // Redirect to lecture view
-      router.push(`/lecture/${lecture.id}`);
+      await enqueueTranscriptionJob(lecture.id, audioPath, audioFile.type);
+
+      setUploadProgress(95);
+      setIsUploading(false);
+
+      // Redirect to lecture view where users can watch status updates
+      router.push(`/lecture/${lecture.id}?status=pending`);
     } catch (err) {
       console.error('Error creating lecture:', err);
       const errorMessage = err instanceof Error
@@ -173,6 +188,15 @@ function NewLectureContent() {
         : typeof err === 'object' && err !== null
           ? JSON.stringify(err)
           : 'Failed to create lecture';
+      if (createdLectureId) {
+        await supabase
+          .from('lectures')
+          .update({
+            transcription_status: 'failed',
+            transcription_error: errorMessage
+          })
+          .eq('id', createdLectureId);
+      }
       setError(`Failed to create lecture: ${errorMessage}`);
       setIsUploading(false);
       setUploadProgress(0);
